@@ -13,7 +13,6 @@ from market_attractiveness.dashboard_utils import (
     missing_dimension_count,
     strongest_weakest_dimensions,
 )
-from market_attractiveness.live_data import LiveDataError, market_input_from_city
 from market_attractiveness.models import MarketInput
 from market_attractiveness.narrative import build_narrative_prompt, render_narrative_summary
 from market_attractiveness.scoring import score_market
@@ -79,31 +78,18 @@ def main() -> None:
     st.caption("Deterministic scoring from external market conditions only.")
 
     mode = st.sidebar.radio("Mode", ["Single market", "Compare markets"])
-    source_options = ["Use sample", "Upload JSON"]
-    if mode == "Single market":
-        source_options.append("Fetch city live")
-    source = st.sidebar.radio("Input source", source_options)
+    source = st.sidebar.radio("Input source", ["Use sample", "Upload JSON"])
 
     try:
         if mode == "Single market":
             if source == "Use sample":
                 market = load_market_input(SAMPLE_SINGLE)
-            elif source == "Upload JSON":
+            else:
                 uploaded = st.file_uploader("Upload single-market JSON", type=["json"])
                 if not uploaded:
                     st.info("Upload a JSON file to continue.")
                     return
                 market = _load_uploaded_market(uploaded.getvalue())
-            else:
-                city = st.text_input("City", placeholder="e.g., Austin, TX")
-                if not city:
-                    st.info("Enter a city to fetch live data.")
-                    return
-                try:
-                    market = market_input_from_city(city)
-                except LiveDataError as exc:
-                    st.error(f"Could not fetch city data: {exc}")
-                    return
             _render_scorecard(market)
         else:
             if source == "Use sample":

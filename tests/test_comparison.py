@@ -51,20 +51,3 @@ def test_compare_markets_missing_data_keeps_confidence_flag_and_dimensions():
     assert ranked[0].missing_dimensions > 3
     assert ranked[0].strongest_dimension is not None
     assert ranked[0].weakest_dimension is not None
-
-
-def test_compare_accepts_market_name_strings_via_cli_loader():
-    from market_attractiveness.cli import load_market_array_input
-    from pathlib import Path
-    import json
-
-    payload = ["New York, NY", "Los Angeles, CA", "Chicago, IL"]
-    temp = Path('/tmp/markets_names_only.json')
-    temp.write_text(json.dumps(payload))
-
-    markets = load_market_array_input(str(temp))
-    ranked = compare_markets(markets)
-
-    assert len(ranked) == 3
-    assert {r.market_name for r in ranked} == set(payload)
-    assert all(r.confidence_flag == "LOW_DATA" for r in ranked)

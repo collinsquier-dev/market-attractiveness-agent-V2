@@ -36,30 +36,6 @@ PYTHONPATH=src python -m market_attractiveness.cli score examples/sample_market_
 PYTHONPATH=src python -m market_attractiveness.cli compare examples/sample_markets_input.json
 ```
 
-### 4) Compare top 20 cities quickly
-You can start from a names-only list and progressively add data later:
-
-```bash
-PYTHONPATH=src python -m market_attractiveness.cli compare examples/top_20_us_cities_template.json
-```
-
-- In compare mode, each list item can be either:
-  - a full market object (`{"market_name": "Austin, TX", ...}`), or
-  - just a market name string (`"Austin, TX"`).
-- Names-only entries are valid and will return `LOW_DATA` until you add dimension values.
-
-### 5) Auto-fetch a city and score it
-You can now score **any city Teleport supports** directly from the CLI:
-
-```bash
-PYTHONPATH=src python -m market_attractiveness.cli autofetch "Miami, FL"
-```
-
-Notes:
-- This uses live data from the Teleport API.
-- Some dimensions are proxies and some may still be missing depending on data availability.
-- If the city is not covered by Teleport urban-area data, the command returns a clear error.
-
 Compare output includes:
 - rank by overall score (descending)
 - overall score and confidence
@@ -81,7 +57,6 @@ PYTHONPATH=src streamlit run streamlit_app.py
 
 ### Dashboard features
 - single-market mode and compare mode
-- single-market live city fetch by typing a city name
 - upload JSON file or use sample files
 - overall score, confidence flag, missing-data count
 - strongest and weakest dimensions
@@ -115,7 +90,6 @@ PYTHONPATH=src streamlit run streamlit_app.py
 - Dashboard helpers: `src/market_attractiveness/dashboard_utils.py`
 - Models: `src/market_attractiveness/models.py`
 - Narrative template: `src/market_attractiveness/narrative.py`
-- Live city fetcher: `src/market_attractiveness/live_data.py`
 - CLI runner: `src/market_attractiveness/cli.py`
 - Streamlit app: `streamlit_app.py`
 - Sample I/O: `examples/sample_market_input.json`, `examples/sample_market_output.json`, `examples/sample_markets_input.json`, `examples/sample_markets_output.json`
@@ -125,18 +99,3 @@ PYTHONPATH=src streamlit run streamlit_app.py
 - Replace sample/manual input with data connectors.
 - Keep scoring deterministic; use LLM only for narrative generation.
 - Attach URLs/citations per note for traceability.
-
-
-## Merge readiness checklist
-Before opening or updating your PR branch:
-
-1. Ensure local tests pass:
-   ```bash
-   python -m pytest -q
-   ```
-2. Push your branch to GitHub.
-3. Confirm GitHub Actions `CI` workflow is green.
-4. Resolve any branch conflicts shown in GitHub PR UI.
-5. Re-run checks after conflict resolution.
-
-If branch protection requires status checks, the new `CI` workflow is what needs to pass for merge.
