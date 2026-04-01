@@ -13,7 +13,6 @@ from market_attractiveness.dashboard_utils import (
     missing_dimension_count,
     strongest_weakest_dimensions,
 )
-from market_attractiveness.live_data import LiveDataError, market_input_from_city
 from market_attractiveness.models import MarketInput
 from market_attractiveness.narrative import build_narrative_prompt, render_narrative_summary
 from market_attractiveness.scoring import score_market
@@ -79,43 +78,24 @@ def main() -> None:
     st.caption("Deterministic scoring from external market conditions only.")
 
     mode = st.sidebar.radio("Mode", ["Single market", "Compare markets"])
+    source = st.sidebar.radio("Input source", ["Use sample", "Upload JSON"])
 
     try:
         if mode == "Single market":
-            st.subheader("Single-market input")
-            tab_sample, tab_upload, tab_live = st.tabs(["Use sample", "Upload JSON", "Fetch city live"])
-
-            with tab_sample:
-                st.caption("Use built-in sample city data")
-                if st.button("Score sample city", key="score_sample_city"):
-                    market = load_market_input(SAMPLE_SINGLE)
-                    _render_scorecard(market)
-
-            with tab_upload:
-                uploaded = st.file_uploader("Upload single-market JSON", type=["json"], key="single_upload")
-                if uploaded and st.button("Score uploaded city", key="score_uploaded_city"):
-                    market = _load_uploaded_market(uploaded.getvalue())
-                    _render_scorecard(market)
-
-            with tab_live:
-                st.caption("Type a city and fetch live data automatically")
-                city = st.text_input("City", placeholder="e.g., Austin, TX", key="live_city_name")
-                if st.button("Fetch & score city", key="fetch_score_city"):
-                    if not city:
-                        st.info("Enter a city to fetch live data.")
-                    else:
-                        try:
-                            market = market_input_from_city(city)
-                        except LiveDataError as exc:
-                            st.error(f"Could not fetch city data: {exc}")
-                        else:
-                            _render_scorecard(market)
+            if source == "Use sample":
+                market = load_market_input(SAMPLE_SINGLE)
+            else:
+                uploaded = st.file_uploader("Upload single-market JSON", type=["json"])
+                if not uploaded:
+                    st.info("Upload a JSON file to continue.")
+                    return
+                market = _load_uploaded_market(uploaded.getvalue())
+            _render_scorecard(market)
         else:
-            source = st.sidebar.radio("Input source", ["Use sample", "Upload JSON"])
             if source == "Use sample":
                 markets = load_market_array_input(SAMPLE_COMPARE)
             else:
-                uploaded = st.file_uploader("Upload market-array JSON", type=["json"], key="compare_upload")
+                uploaded = st.file_uploader("Upload market-array JSON", type=["json"])
                 if not uploaded:
                     st.info("Upload a JSON file to continue.")
                     return
