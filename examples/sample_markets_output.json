@@ -1,0 +1,24 @@
+{
+  "ranked_markets": [
+    {
+      "rank": 1,
+      "market_name": "Austin, TX",
+      "overall_score": 69.53,
+      "overall_confidence": 0.74,
+      "confidence_flag": "MEDIUM_CONFIDENCE",
+      "strongest_dimension": "Population growth trends",
+      "weakest_dimension": "Competitive intensity",
+      "missing_dimensions": 0
+    },
+    {
+      "rank": 2,
+      "market_name": "Raleigh, NC",
+      "overall_score": 66.87,
+      "overall_confidence": 0.73,
+      "confidence_flag": "MEDIUM_CONFIDENCE",
+      "strongest_dimension": "Population growth trends",
+      "weakest_dimension": "Target company density (1,000+ employees and $1B+ revenue)",
+      "missing_dimensions": 0
+    }
+  ]
+}
