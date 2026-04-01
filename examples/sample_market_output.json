@@ -1,0 +1,84 @@
+{
+  "scorecard": {
+    "market_name": "Austin, TX",
+    "overall_score": 69.53,
+    "overall_confidence": 0.74,
+    "confidence_flag": "MEDIUM_CONFIDENCE",
+    "dimension_scores": [
+      {
+        "name": "Population growth trends",
+        "score": 82.0,
+        "weight": 0.12,
+        "confidence": 0.85,
+        "missing": false,
+        "rationale": "Population trend remains above national average in recent estimates."
+      },
+      {
+        "name": "GDP and macro growth indicators",
+        "score": 78.0,
+        "weight": 0.12,
+        "confidence": 0.8,
+        "missing": false,
+        "rationale": "Regional GDP growth outpaces broader U.S. average."
+      },
+      {
+        "name": "Industry concentration",
+        "score": 74.0,
+        "weight": 0.1,
+        "confidence": 0.72,
+        "missing": false,
+        "rationale": "Concentration in tech and advanced services supports specialization."
+      },
+      {
+        "name": "Target company density (1,000+ employees and $1B+ revenue)",
+        "score": 62.2,
+        "weight": 0.14,
+        "confidence": 0.72,
+        "missing": false,
+        "rationale": "Counts are illustrative sample values from open-source business directories."
+      },
+      {
+        "name": "Compensation benchmarks",
+        "score": 63.0,
+        "weight": 0.1,
+        "confidence": 0.74,
+        "missing": false,
+        "rationale": "Compensation lower than coastal hubs but rising."
+      },
+      {
+        "name": "Cost of living / operating cost",
+        "score": 61.0,
+        "weight": 0.12,
+        "confidence": 0.7,
+        "missing": false,
+        "rationale": "Operating costs still moderate vs tier-1 metros, with upward pressure."
+      },
+      {
+        "name": "Competitive intensity",
+        "score": 52.0,
+        "weight": 0.1,
+        "confidence": 0.65,
+        "missing": false,
+        "rationale": "Competition for enterprise clients and talent has intensified."
+      },
+      {
+        "name": "Pro-business reforms / policy environment",
+        "score": 79.0,
+        "weight": 0.1,
+        "confidence": 0.78,
+        "missing": false,
+        "rationale": "Business climate remains favorable for expansion and investment."
+      },
+      {
+        "name": "Qualitative open-source momentum signals",
+        "score": 75.0,
+        "weight": 0.1,
+        "confidence": 0.68,
+        "missing": false,
+        "rationale": "Signals include corporate expansions and sustained economic development activity."
+      }
+    ]
+  },
+  "narrative_prompt": "You are an analyst writing a market attractiveness summary.\nMarket: Austin, TX\nOverall score (0-100): 69.53\nOverall confidence (0-1): 0.74\nConfidence flag: MEDIUM_CONFIDENCE\n\nDimension details:\n- Population growth trends: score=82.0, confidence=0.85, missing=False, rationale=Population trend remains above national average in recent estimates.\n- GDP and macro growth indicators: score=78.0, confidence=0.8, missing=False, rationale=Regional GDP growth outpaces broader U.S. average.\n- Industry concentration: score=74.0, confidence=0.72, missing=False, rationale=Concentration in tech and advanced services supports specialization.\n- Target company density (1,000+ employees and $1B+ revenue): score=62.2, confidence=0.72, missing=False, rationale=Counts are illustrative sample values from open-source business directories.\n- Compensation benchmarks: score=63.0, confidence=0.74, missing=False, rationale=Compensation lower than coastal hubs but rising.\n- Cost of living / operating cost: score=61.0, confidence=0.7, missing=False, rationale=Operating costs still moderate vs tier-1 metros, with upward pressure.\n- Competitive intensity: score=52.0, confidence=0.65, missing=False, rationale=Competition for enterprise clients and talent has intensified.\n- Pro-business reforms / policy environment: score=79.0, confidence=0.78, missing=False, rationale=Business climate remains favorable for expansion and investment.\n- Qualitative open-source momentum signals: score=75.0, confidence=0.68, missing=False, rationale=Signals include corporate expansions and sustained economic development activity.\n\nWrite output with these sections:\n1) Market attractiveness verdict (short)\n2) Top structural strengths\n3) Structural risks / constraints\n4) Data quality caveats using confidence_flag\n5) Momentum narrative from qualitative signals\nDo not include leadership, internal network, partner fit, or entry model recommendations.",
+  "narrative_summary": "Verdict: Moderately attractive (score=69.53, confidence=0.74).\nStrengths: Population growth trends, GDP and macro growth indicators, Industry concentration, Pro-business reforms / policy environment, Qualitative open-source momentum signals\nRisks: No major low-scoring constraints identified from current inputs.\nData quality: MEDIUM_CONFIDENCE. Missing dimensions: 0.\nMomentum narrative: Signals include corporate expansions and sustained economic development activity."
+}
