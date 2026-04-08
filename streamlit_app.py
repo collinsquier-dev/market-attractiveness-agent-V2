@@ -6,6 +6,11 @@ from typing import List
 
 import streamlit as st
 
+import os
+import sys
+
+sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
+
 from market_attractiveness.cli import load_market_array_input, load_market_input
 from market_attractiveness.comparison import compare_markets, compared_markets_as_dict
 from market_attractiveness.dashboard_utils import (
@@ -26,6 +31,9 @@ from market_attractiveness.scoring import score_market
 SAMPLE_SINGLE = "examples/sample_market_input.json"
 SAMPLE_COMPARE = "examples/sample_markets_input.json"
 
+@st.cache_data(ttl=3600)
+def _fetch_city_cached(city_name: str) -> MarketInput:
+    return market_input_from_city(city_name)
 
 def _load_uploaded_market(content: bytes) -> MarketInput:
     data = json.loads(content.decode("utf-8"))
@@ -114,6 +122,21 @@ def main() -> None:
                             st.error(f"Could not fetch city data: {exc}")
                         else:
                             _render_scorecard(market)
+ with tab_live:
+    st.caption("Type a city and fetch live data automatically")
+    city = st.text_input("City", placeholder="e.g., Austin, TX", key="live_city_name")
+    if st.button("Fetch & score city", key="fetch_score_city"):
+        if not city:
+            st.info("Enter a city to fetch live data.")
+        else:
+            try:
+                market = _fetch_city_cached(city)
+            except LiveDataError as exc:
+                st.warning("Live city data is temporarily unavailable.")
+                st.error(f"Could not fetch city data: {exc}")
+                st.info("Use the sample tab or upload JSON while live data is unavailable.")
+            else:
+                _render_scorecard(market)
         else:
             st.subheader("Compare markets")
             source = st.sidebar.radio("Input source", ["Use sample", "Upload JSON", "Fetch cities live"])

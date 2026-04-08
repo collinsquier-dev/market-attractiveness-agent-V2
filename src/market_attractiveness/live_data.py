@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+import json
+import time
 import urllib.parse
 import urllib.request
 from urllib.error import URLError
@@ -91,6 +93,18 @@ def _offline_market_input(city_name: str) -> MarketInput:
             note=note,
         ),
     )
+def _get_json(url: str) -> Dict[str, Any]:
+    req = urllib.request.Request(url, headers={"User-Agent": "market-attractiveness-agent/0.1"})
+    last_exc = None
+    for attempt in range(3):
+        try:
+            with urllib.request.urlopen(req, timeout=15) as response:
+                return json.loads(response.read().decode("utf-8"))
+        except URLError as exc:
+            last_exc = exc
+            if attempt < 2:
+                time.sleep(2)
+    raise LiveDataError(f"Could not reach live data provider at {url}: {last_exc}") from last_exc
 
 
 def _to_100(score_10: Optional[float]) -> Optional[float]:
@@ -201,6 +215,47 @@ def market_input_from_city(city_name: str) -> MarketInput:
         )
     except Exception:
         return _minimal_safe_market_input(city_name)
+def market_input_from_city(city_name: str) -> MarketInput:
+    query = urllib.parse.quote(city_name)
+    search_url = f"{TELEPORT_API}/cities/?search={query}&limit=1"
+    search_payload = _get_json(search_url)
+    scores_url = _find_urban_area_scores_url(search_payload)
+    scores_payload = _get_json(scores_url)
+    category_scores = _scores_by_name(scores_payload)
+
+    return MarketInput(
+        market_name=city_name,
+        gdp_and_macro_growth=DimensionInput(
+            value=_to_100(category_scores.get("Economy")),
+            confidence=0.6,
+            note="Derived from Teleport 'Economy' urban-area score.",
+        ),
+        industry_concentration=DimensionInput(
+            value=_to_100(category_scores.get("Startups")),
+            confidence=0.55,
+            note="Proxy from Teleport 'Startups' score.",
+        ),
+        compensation_benchmarks=DimensionInput(
+            value=_to_100(category_scores.get("Salaries")),
+            confidence=0.6,
+            note="Derived from Teleport 'Salaries' score.",
+        ),
+        cost_of_living_and_operating=DimensionInput(
+            value=_invert_100(category_scores.get("Cost of Living")),
+            confidence=0.6,
+            note="Inverted from Teleport 'Cost of Living' (lower cost => higher attractiveness).",
+        ),
+        policy_environment=DimensionInput(
+            value=_to_100(category_scores.get("Business Freedom")),
+            confidence=0.6,
+            note="Derived from Teleport 'Business Freedom' score.",
+        ),
+        qualitative_momentum_signals=DimensionInput(
+            value=_to_100(category_scores.get("Startups")),
+            confidence=0.5,
+            note="Proxy from Teleport innovation/startup signal.",
+        ),
+    )
 
 
 def market_inputs_from_cities(cities: list[str]) -> tuple[list[MarketInput], dict[str, str]]:
@@ -212,4 +267,6 @@ def market_inputs_from_cities(cities: list[str]) -> tuple[list[MarketInput], dic
             markets.append(market_input_from_city(city))
         except Exception as exc:
             errors[str(city)] = str(exc)
+        except LiveDataError as exc:
+            errors[city] = str(exc)
     return markets, errors
