@@ -58,6 +58,8 @@ PYTHONPATH=src python -m market_attractiveness.cli autofetch "Miami, FL"
 Notes:
 - This uses live data from the Teleport API.
 - Some dimensions are proxies and some may still be missing depending on data availability.
+- Live fetch is fail-safe: if Teleport is unavailable (or returns unexpected data), the app automatically uses fallback scoring instead of failing.
+- Common cities (including Nashville, TN) use curated fallback profiles; any other city uses a deterministic synthetic fallback profile so **any city input still returns a score**.
 - If the city is not covered by Teleport urban-area data, the command returns a clear error.
 
 Compare output includes:

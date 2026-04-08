@@ -30,6 +30,7 @@ from market_attractiveness.scoring import score_market
 
 SAMPLE_SINGLE = "examples/sample_market_input.json"
 SAMPLE_COMPARE = "examples/sample_markets_input.json"
+
 @st.cache_data(ttl=3600)
 def _fetch_city_cached(city_name: str) -> MarketInput:
     return market_input_from_city(city_name)
@@ -107,6 +108,20 @@ def main() -> None:
                 if uploaded and st.button("Score uploaded city", key="score_uploaded_city"):
                     market = _load_uploaded_market(uploaded.getvalue())
                     _render_scorecard(market)
+
+            with tab_live:
+                st.caption("Type a city and fetch live data automatically")
+                city = st.text_input("City", placeholder="e.g., Austin, TX", key="live_city_name")
+                if st.button("Fetch & score city", key="fetch_score_city"):
+                    if not city:
+                        st.info("Enter a city to fetch live data.")
+                    else:
+                        try:
+                            market = market_input_from_city(city)
+                        except LiveDataError as exc:
+                            st.error(f"Could not fetch city data: {exc}")
+                        else:
+                            _render_scorecard(market)
  with tab_live:
     st.caption("Type a city and fetch live data automatically")
     city = st.text_input("City", placeholder="e.g., Austin, TX", key="live_city_name")
