@@ -1,6 +1,7 @@
 """Market attractiveness scoring package."""
 
 from .comparison import compare_markets
+from .live_data import city_score_report_from_city, market_input_from_city, market_inputs_from_cities
 from .live_data import market_input_from_city, market_inputs_from_cities
 from .models import (
     DimensionInput,
@@ -24,4 +25,5 @@ __all__ = [
     "render_narrative_summary",
     "market_input_from_city",
     "market_inputs_from_cities",
+    "city_score_report_from_city",
 ]

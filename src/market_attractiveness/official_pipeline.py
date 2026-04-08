@@ -6,6 +6,9 @@ import time
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass
+from datetime import date
+from typing import Any, Dict, Optional
+
 from typing import Any, Dict, Optional
 
 
@@ -18,6 +21,7 @@ STATE_ABBR_TO_FIPS = {
     "VT": "50", "VA": "51", "WA": "53", "WV": "54", "WI": "55", "WY": "56",
 }
 
+POLICY_STATE_SCORE = {"TX": 76, "FL": 75, "TN": 74, "NC": 72, "GA": 72, "UT": 74, "CO": 70, "CA": 63, "NY": 61, "WA": 68, "IL": 62, "MA": 67}
 POLICY_STATE_SCORE = {
     "TX": 76, "FL": 75, "TN": 74, "NC": 72, "GA": 72, "UT": 74, "CO": 70,
     "CA": 63, "NY": 61, "WA": 68, "IL": 62, "MA": 67,
@@ -37,6 +41,14 @@ class ResolvedCity:
 
 @dataclass
 class DimensionMetric:
+    raw_value: float
+    normalized_score: float
+    source: str
+    source_date: str
+    geographic_level_used: str
+    direct_vs_proxy: str
+    confidence_score: float
+    explanation: str
     value: float
     confidence: float
     note: str
@@ -94,6 +106,7 @@ class ACSFetcher:
         fips = STATE_ABBR_TO_FIPS.get(city.state_abbr)
         if not fips:
             return {}
+        vars_ = ["B01003_001E", "B19013_001E", "B25064_001E", "B23025_003E", "B23025_005E", "B15003_001E", "B15003_022E", "B15003_023E", "B15003_024E", "B15003_025E"]
 
         vars_ = [
             "NAME",
@@ -143,6 +156,13 @@ class BLSFetcher:
         state_code = STATE_ABBR_TO_FIPS.get(city.state_abbr)
         if not state_code:
             return {}
+        series = f"LAUST{state_code}0000000000003"
+        body = json.dumps({"seriesid": [series], "startyear": "2024", "endyear": "2025"}).encode("utf-8")
+        req = urllib.request.Request("https://api.bls.gov/publicAPI/v2/timeseries/data/", data=body, headers={"Content-Type": "application/json", "User-Agent": "market-attractiveness-agent"}, method="POST")
+        try:
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                payload = json.loads(resp.read().decode("utf-8"))
+            latest = float(payload["Results"]["series"][0]["data"][0]["value"])
 
         # State unemployment series (LAUS)
         state_code = STATE_ABBR_TO_FIPS.get(city.state_abbr)
@@ -172,6 +192,14 @@ class BLSFetcher:
 
 class FREDFetcher:
     def fetch(self, city: ResolvedCity) -> Dict[str, float]:
+        key = os.getenv("FRED_API_KEY")
+        if not key:
+            return {}
+        url = f"https://api.stlouisfed.org/fred/series/observations?series_id=UNRATE&api_key={key}&file_type=json&limit=1&sort_order=desc"
+        try:
+            payload = http_get_json(url)
+            obs = payload.get("observations", [])
+            return {"fred_unrate": float(obs[0]["value"])} if obs else {}
         api_key = os.getenv("FRED_API_KEY")
         if not api_key:
             return {}
@@ -189,6 +217,13 @@ class FREDFetcher:
 
 class MetricNormalizer:
     @staticmethod
+    def _clamp(v: float, lo: float = 0.0, hi: float = 100.0) -> float:
+        return max(lo, min(hi, v))
+
+    def normalize(self, city: ResolvedCity, acs: Dict[str, float], bls: Dict[str, float], fred: Dict[str, float]) -> Dict[str, DimensionMetric]:
+        d = date.today().isoformat()
+        has_acs, has_bls = bool(acs), bool(bls)
+        level = "state" if has_acs or has_bls else "resolver"
     def _clamp(v: float, lo: float = 0, hi: float = 100) -> float:
         return max(lo, min(hi, v))
 
@@ -200,6 +235,19 @@ class MetricNormalizer:
         income = acs.get("median_income", 65000.0)
         rent = acs.get("median_rent", 1400.0)
         edu = acs.get("education_ba_plus_rate", 30.0)
+        pop = acs.get("population", 1_000_000.0)
+
+        metrics = {
+            "population_growth_trends": DimensionMetric(pop, self._clamp(35 + city.importance * 35), "ACS/Resolver", d, level, "proxy", 0.55 if has_acs else 0.35, "Population proxy from ACS state population + city prominence."),
+            "gdp_and_macro_growth": DimensionMetric(unemp, self._clamp(84 - unemp * 4.4), "BLS/ACS/FRED", d, level, "direct" if has_bls else "proxy", 0.72 if has_bls else 0.6 if has_acs else 0.45, "Macro/labor composite from unemployment indicators."),
+            "industry_concentration": DimensionMetric(edu, self._clamp(40 + edu * 0.7 + city.importance * 20), "ACS + resolver", d, level, "proxy", 0.62 if has_acs else 0.48, "Industry proxy from BA+ education share and resolver importance."),
+            "compensation_benchmarks": DimensionMetric(income, self._clamp(30 + income / 2200.0), "ACS", d, level, "direct" if has_acs else "proxy", 0.68 if has_acs else 0.45, "Compensation proxy from median household income."),
+            "cost_of_living_and_operating": DimensionMetric(rent, self._clamp(88 - rent / 35.0 + income / 15000.0), "ACS", d, level, "direct" if has_acs else "proxy", 0.68 if has_acs else 0.42, "Cost proxy from rent-to-income relationship."),
+            "competitive_intensity": DimensionMetric(city.importance, self._clamp(45 + city.importance * 40 + (pop / 20_000_000.0)), "Resolver + ACS", d, level, "proxy", 0.5 if has_acs else 0.4, "Competitive intensity proxy from city prominence and population scale."),
+            "policy_environment": DimensionMetric(float(POLICY_STATE_SCORE.get(city.state_abbr or "", 66)), float(POLICY_STATE_SCORE.get(city.state_abbr or "", 66)), "State policy lookup", d, "state", "proxy", 0.5, "Maintainable state-level policy lookup table."),
+            "qualitative_momentum_signals": DimensionMetric(city.importance, self._clamp(42 + city.importance * 34 + max(0.0, 8.0 - unemp) * 2.2), "Resolver + labor", d, level, "proxy", 0.55 if has_bls or has_acs else 0.35, "Momentum proxy from resolver importance and labor conditions."),
+        }
+        return metrics
 
         gdp_macro = self._clamp(84 - (unemp * 4.4))
         industry = self._clamp(40 + (edu * 0.7) + city.importance * 20)
@@ -263,6 +311,29 @@ class MetricNormalizer:
 
 class MarketInputBuilder:
     def build(self, city: ResolvedCity, metrics: Dict[str, DimensionMetric]):
+        from .models import DimensionInput, MarketInput, TargetCompanyInput
+
+        # Proxy target-company counts from population/income scale.
+        pop = metrics["population_growth_trends"].raw_value
+        income = metrics["compensation_benchmarks"].raw_value
+        count_1000_plus = int(max(5, min(220, pop / 350000)))
+        count_1b_plus = int(max(2, min(90, (income / 2000) / 5)))
+
+        def dim(key: str) -> DimensionInput:
+            m = metrics[key]
+            return DimensionInput(value=round(m.normalized_score, 2), confidence=round(m.confidence_score, 2), note=f"{m.explanation} Source={m.source}; level={m.geographic_level_used}; type={m.direct_vs_proxy}; date={m.source_date}.")
+
+        return MarketInput(
+            market_name=city.query,
+            population_growth_trends=dim("population_growth_trends"),
+            gdp_and_macro_growth=dim("gdp_and_macro_growth"),
+            industry_concentration=dim("industry_concentration"),
+            target_companies=TargetCompanyInput(count_1000_plus=count_1000_plus, count_1b_plus=count_1b_plus, confidence=0.45, note="Proxy from population/income scale due sparse direct company registry in default pipeline."),
+            compensation_benchmarks=dim("compensation_benchmarks"),
+            cost_of_living_and_operating=dim("cost_of_living_and_operating"),
+            competitive_intensity=dim("competitive_intensity"),
+            policy_environment=dim("policy_environment"),
+            qualitative_momentum_signals=dim("qualitative_momentum_signals"),
     def build(self, city: ResolvedCity, normalized: Dict[str, float], source_note: str):
         from .models import DimensionInput, MarketInput
 

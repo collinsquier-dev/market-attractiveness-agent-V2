@@ -114,6 +114,18 @@ PYTHONPATH=src streamlit run streamlit_app.py
 - ranked comparison table
 - narrative explanation panel
 
+
+### Dimension calculation summary
+- Population growth trends: ACS population + resolver prominence proxy
+- GDP/macro growth: BLS unemployment (preferred), ACS labor proxy, optional FRED
+- Industry concentration: ACS BA+ education share + resolver prominence
+- Target companies: population/income-scale proxy counts
+- Compensation: ACS median household income
+- Cost of living/operating: ACS rent-to-income proxy
+- Competitive intensity: prominence + population scale proxy
+- Policy environment: state policy lookup table
+- Momentum signals: prominence + labor conditions proxy
+
 ### Entering any city in Streamlit
 1. Launch app:
    ```bash
