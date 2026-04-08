@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import json
 import time
 import urllib.parse
 import urllib.request
