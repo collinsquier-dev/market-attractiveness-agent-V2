@@ -60,6 +60,8 @@ PYTHONPATH=src python -m market_attractiveness.cli compare examples/top_20_us_ci
 - fallback profiles: curated city dictionary + deterministic synthetic fallback
 
 You can now score **any city** directly from the CLI via OpenStreetMap Nominatim lookup:
+You can now score **any city** directly from the CLI via OpenStreetMap Nominatim lookup:
+You can now score **any city Teleport supports** directly from the CLI:
 
 ```bash
 PYTHONPATH=src python -m market_attractiveness.cli autofetch "Miami, FL"
@@ -70,6 +72,15 @@ Notes:
 - Some dimensions are proxies and some may still be missing depending on data availability.
 - Live fetch is fail-safe: if one source is unavailable, the pipeline still returns using available sources or fallback profiles.
 - Common cities (including Nashville, TN) use curated fallback profiles; any other city uses a deterministic synthetic fallback profile so **any city input still returns a score**.
+- This uses live city lookup from OpenStreetMap Nominatim (with retry logic).
+- Some dimensions are proxies and some may still be missing depending on data availability.
+- Live fetch is fail-safe: if Nominatim is unavailable (or returns unexpected data), the app automatically uses fallback scoring instead of failing.
+- Common cities (including Nashville, TN) use curated fallback profiles; any other city uses a deterministic synthetic fallback profile so **any city input still returns a score**.
+- This uses live data from the Teleport API.
+- Some dimensions are proxies and some may still be missing depending on data availability.
+- Live fetch is fail-safe: if Teleport is unavailable (or returns unexpected data), the app automatically uses fallback scoring instead of failing.
+- Common cities (including Nashville, TN) use curated fallback profiles; any other city uses a deterministic synthetic fallback profile so **any city input still returns a score**.
+- If the city is not covered by Teleport urban-area data, the command returns a clear error.
 
 Compare output includes:
 - rank by overall score (descending)
