@@ -82,6 +82,7 @@ def run_autofetch(city_name: str) -> dict:
     market = market_input_from_city(city_name)
     scorecard = score_market(market)
     return {
+        "source": "nominatim_proxy",
         "source": "teleport",
         "city": city_name,
         "scorecard": scorecard.as_dict(),

@@ -49,6 +49,7 @@ PYTHONPATH=src python -m market_attractiveness.cli compare examples/top_20_us_ci
 - Names-only entries are valid and will return `LOW_DATA` until you add dimension values.
 
 ### 5) Auto-fetch a city and score it
+You can now score **any city** directly from the CLI via OpenStreetMap Nominatim lookup:
 You can now score **any city Teleport supports** directly from the CLI:
 
 ```bash
@@ -56,6 +57,10 @@ PYTHONPATH=src python -m market_attractiveness.cli autofetch "Miami, FL"
 ```
 
 Notes:
+- This uses live city lookup from OpenStreetMap Nominatim (with retry logic).
+- Some dimensions are proxies and some may still be missing depending on data availability.
+- Live fetch is fail-safe: if Nominatim is unavailable (or returns unexpected data), the app automatically uses fallback scoring instead of failing.
+- Common cities (including Nashville, TN) use curated fallback profiles; any other city uses a deterministic synthetic fallback profile so **any city input still returns a score**.
 - This uses live data from the Teleport API.
 - Some dimensions are proxies and some may still be missing depending on data availability.
 - Live fetch is fail-safe: if Teleport is unavailable (or returns unexpected data), the app automatically uses fallback scoring instead of failing.
@@ -166,3 +171,9 @@ If branch protection requires status checks, the new `CI` workflow is what needs
 - If you see an `IndentationError` in `streamlit_app.py`, ensure your local branch is up to date and that your editor is configured for 4-space indentation (no tabs).
 - This repo includes `.editorconfig` to enforce consistent indentation across environments.
 - Run `python scripts/verify_indentation.py` to detect tabs/inconsistent indentation before running Streamlit.
+
+- If GitHub reports test failures, sync to latest branch and run:
+  ```bash
+  ./scripts/premerge_check.sh
+  ```
+  CI runs this same script on Python 3.10 and 3.11.

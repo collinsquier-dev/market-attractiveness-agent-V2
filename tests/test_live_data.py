@@ -1,3 +1,31 @@
+from market_attractiveness.live_data import market_input_from_city, market_inputs_from_cities
+
+
+def test_market_input_from_city_uses_live_lookup_when_available(monkeypatch):
+    from market_attractiveness.live_data import _lookup_city_nominatim
+
+    def fake_lookup(_city: str):
+        return {
+            "lat": "36.1627",
+            "lon": "-86.7816",
+            "importance": 0.72,
+            "address": {"country_code": "us"},
+        }
+
+    monkeypatch.setattr("market_attractiveness.live_data._lookup_city_nominatim", fake_lookup)
+
+    market = market_input_from_city("Nashville, TN")
+
+    assert market.market_name == "Nashville, TN"
+    assert market.gdp_and_macro_growth.value is not None
+    assert "Nominatim" in (market.gdp_and_macro_growth.note or "")
+
+
+def test_market_input_from_city_falls_back_to_curated_profile(monkeypatch):
+    def boom(_city: str):
+        raise RuntimeError("network down")
+
+    monkeypatch.setattr("market_attractiveness.live_data._lookup_city_nominatim", boom)
 from urllib.error import URLError
 
 from market_attractiveness.live_data import _invert_100, _scores_by_name, _to_100
@@ -50,6 +78,14 @@ def test_market_input_from_city_uses_offline_fallback_when_provider_unreachable(
     market = market_input_from_city("Nashville, TN")
 
     assert market.market_name == "Nashville, TN"
+    assert "Offline curated fallback" in (market.gdp_and_macro_growth.note or "")
+
+
+def test_market_input_from_city_falls_back_to_synthetic_for_unknown_city(monkeypatch):
+    def boom(_city: str):
+        raise RuntimeError("network down")
+
+    monkeypatch.setattr("market_attractiveness.live_data._lookup_city_nominatim", boom)
     assert market.gdp_and_macro_growth.value is not None
     assert "Offline fallback" in (market.gdp_and_macro_growth.note or "")
 
@@ -69,6 +105,7 @@ def test_market_input_from_city_uses_synthetic_fallback_for_unknown_city(monkeyp
     assert "Synthetic fallback" in (market.gdp_and_macro_growth.note or "")
 
 
+def test_market_input_from_city_never_fails_on_empty_or_none():
 def test_market_input_from_city_fallback_handles_non_network_exceptions(monkeypatch):
     from market_attractiveness.live_data import market_input_from_city
 
@@ -91,5 +128,18 @@ def test_market_input_from_city_never_fails_on_empty_or_none():
 
     assert m1.market_name == "Unknown"
     assert m2.market_name == "Unknown"
+
+
+def test_market_inputs_from_cities_collects_outputs_without_crashing(monkeypatch):
+    def fake_city(city: str):
+        if city == "Bad":
+            raise RuntimeError("unexpected")
+        return market_input_from_city(city)
+
+    monkeypatch.setattr("market_attractiveness.live_data.market_input_from_city", fake_city)
+    markets, errors = market_inputs_from_cities(["Austin, TX", "Bad", "Seattle, WA"])
+
+    assert len(markets) == 2
+    assert "Bad" in errors
     assert m1.gdp_and_macro_growth.value is not None
     assert m2.gdp_and_macro_growth.value is not None
