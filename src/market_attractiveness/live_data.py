@@ -16,6 +16,9 @@ from .official_pipeline import (
 OFFLINE_CITY_PROFILES: dict[str, dict[str, float]] = {
     "nashville, tn": {"economy": 72, "startups": 66, "salaries": 61, "cost": 58, "business_freedom": 74},
     "austin, tx": {"economy": 78, "startups": 76, "salaries": 64, "cost": 55, "business_freedom": 76},
+    "chicago, il": {"economy": 70, "startups": 67, "salaries": 66, "cost": 49, "business_freedom": 62},
+    "dallas, tx": {"economy": 76, "startups": 72, "salaries": 63, "cost": 57, "business_freedom": 76},
+    "atlanta, ga": {"economy": 74, "startups": 70, "salaries": 61, "cost": 56, "business_freedom": 72},
     "miami, fl": {"economy": 71, "startups": 68, "salaries": 60, "cost": 50, "business_freedom": 72},
     "denver, co": {"economy": 73, "startups": 71, "salaries": 62, "cost": 52, "business_freedom": 73},
     "seattle, wa": {"economy": 79, "startups": 74, "salaries": 70, "cost": 43, "business_freedom": 70},
@@ -89,11 +92,7 @@ def _build_from_official_pipeline(city_name: str) -> MarketInput:
     fred_metrics: Dict[str, float] = fred.fetch(resolved)
     normalized = normalizer.normalize(resolved, acs_metrics, bls_metrics, fred_metrics)
 
-    return builder.build(
-        resolved,
-        normalized,
-        source_note="Official-data pipeline: Nominatim resolver + ACS/BLS/FRED (optional) with normalization.",
-    )
+    return builder.build(resolved, normalized)
 
 
 def market_input_from_city(city_name: str) -> MarketInput:
