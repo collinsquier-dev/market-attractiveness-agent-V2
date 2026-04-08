@@ -60,6 +60,7 @@ Notes:
 - Some dimensions are proxies and some may still be missing depending on data availability.
 - Live fetch is fail-safe: if Teleport is unavailable (or returns unexpected data), the app automatically uses fallback scoring instead of failing.
 - Common cities (including Nashville, TN) use curated fallback profiles; any other city uses a deterministic synthetic fallback profile so **any city input still returns a score**.
+- If the city is not covered by Teleport urban-area data, the command returns a clear error.
 
 Compare output includes:
 - rank by overall score (descending)
@@ -159,8 +160,3 @@ Before opening or updating your PR branch:
 5. Re-run checks after conflict resolution.
 
 If branch protection requires status checks, the new `CI` workflow is what needs to pass for merge.
-
-
-## Troubleshooting
-- If you see an `IndentationError` in `streamlit_app.py`, ensure your local branch is up to date and that your editor is configured for 4-space indentation (no tabs).
-- This repo includes `.editorconfig` to enforce consistent indentation across environments.
