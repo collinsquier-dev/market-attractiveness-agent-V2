@@ -6,6 +6,11 @@ from typing import List
 
 import streamlit as st
 
+import os
+import sys
+
+sys.path.append(os.path.join(os.path.dirname(__file__), "src"))
+
 from market_attractiveness.cli import load_market_array_input, load_market_input
 from market_attractiveness.comparison import compare_markets, compared_markets_as_dict
 from market_attractiveness.dashboard_utils import (
