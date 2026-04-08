@@ -13,6 +13,11 @@ from market_attractiveness.dashboard_utils import (
     missing_dimension_count,
     strongest_weakest_dimensions,
 )
+from market_attractiveness.live_data import (
+    LiveDataError,
+    market_input_from_city,
+    market_inputs_from_cities,
+)
 from market_attractiveness.models import MarketInput
 from market_attractiveness.narrative import build_narrative_prompt, render_narrative_summary
 from market_attractiveness.scoring import score_market
@@ -78,29 +83,93 @@ def main() -> None:
     st.caption("Deterministic scoring from external market conditions only.")
 
     mode = st.sidebar.radio("Mode", ["Single market", "Compare markets"])
-    source = st.sidebar.radio("Input source", ["Use sample", "Upload JSON"])
 
     try:
         if mode == "Single market":
-            if source == "Use sample":
-                market = load_market_input(SAMPLE_SINGLE)
-            else:
-                uploaded = st.file_uploader("Upload single-market JSON", type=["json"])
-                if not uploaded:
-                    st.info("Upload a JSON file to continue.")
-                    return
-                market = _load_uploaded_market(uploaded.getvalue())
-            _render_scorecard(market)
+            st.subheader("Single-market input")
+            tab_sample, tab_upload, tab_live = st.tabs(["Use sample", "Upload JSON", "Fetch city live"])
+
+            with tab_sample:
+                st.caption("Use built-in sample city data")
+                if st.button("Score sample city", key="score_sample_city"):
+                    market = load_market_input(SAMPLE_SINGLE)
+                    _render_scorecard(market)
+
+            with tab_upload:
+                uploaded = st.file_uploader("Upload single-market JSON", type=["json"], key="single_upload")
+                if uploaded and st.button("Score uploaded city", key="score_uploaded_city"):
+                    market = _load_uploaded_market(uploaded.getvalue())
+                    _render_scorecard(market)
+
+            with tab_live:
+                st.caption("Type a city and fetch live data automatically")
+                city = st.text_input("City", placeholder="e.g., Austin, TX", key="live_city_name")
+                if st.button("Fetch & score city", key="fetch_score_city"):
+                    if not city:
+                        st.info("Enter a city to fetch live data.")
+                    else:
+                        try:
+                            market = market_input_from_city(city)
+                        except LiveDataError as exc:
+                            st.error(f"Could not fetch city data: {exc}")
+                        else:
+                            _render_scorecard(market)
         else:
+            st.subheader("Compare markets")
+            source = st.sidebar.radio("Input source", ["Use sample", "Upload JSON", "Fetch cities live"])
             if source == "Use sample":
                 markets = load_market_array_input(SAMPLE_COMPARE)
-            else:
-                uploaded = st.file_uploader("Upload market-array JSON", type=["json"])
+                _render_comparison(markets)
+            elif source == "Upload JSON":
+                uploaded = st.file_uploader("Upload market-array JSON", type=["json"], key="compare_upload")
                 if not uploaded:
                     st.info("Upload a JSON file to continue.")
                     return
                 markets = _load_uploaded_markets(uploaded.getvalue())
-            _render_comparison(markets)
+                _render_comparison(markets)
+            else:
+                default_cities = """New York, NY
+Los Angeles, CA
+Chicago, IL
+Houston, TX
+Phoenix, AZ
+Philadelphia, PA
+San Antonio, TX
+San Diego, CA
+Dallas, TX
+Jacksonville, FL
+Austin, TX
+Fort Worth, TX
+San Jose, CA
+Columbus, OH
+Charlotte, NC
+Indianapolis, IN
+San Francisco, CA
+Seattle, WA
+Denver, CO
+Washington, DC"""
+                raw_cities = st.text_area(
+                    "Cities to compare (one per line)",
+                    value=default_cities,
+                    height=260,
+                    key="live_compare_cities",
+                )
+                if st.button("Fetch & rank cities", key="fetch_rank_cities"):
+                    cities = [c.strip() for c in raw_cities.splitlines() if c.strip()]
+                    if not cities:
+                        st.info("Enter at least one city.")
+                        return
+                    with st.spinner("Fetching city data and scoring..."):
+                        markets, errors = market_inputs_from_cities(cities)
+                    if errors:
+                        st.warning(f"Could not fetch {len(errors)} cities. Showing available results.")
+                        with st.expander("Show city fetch errors"):
+                            for city, err in errors.items():
+                                st.write(f"- {city}: {err}")
+                    if not markets:
+                        st.error("No city data was fetched. Please try different cities.")
+                        return
+                    _render_comparison(markets)
     except Exception as exc:  # beginner-friendly UX
         st.error(f"Could not process input: {exc}")
 

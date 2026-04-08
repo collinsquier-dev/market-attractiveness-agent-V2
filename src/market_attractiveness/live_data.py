@@ -104,3 +104,15 @@ def market_input_from_city(city_name: str) -> MarketInput:
             note="Proxy from Teleport innovation/startup signal.",
         ),
     )
+
+
+def market_inputs_from_cities(cities: list[str]) -> tuple[list[MarketInput], dict[str, str]]:
+    """Fetch many cities and return (successful_markets, errors_by_city)."""
+    markets: list[MarketInput] = []
+    errors: dict[str, str] = {}
+    for city in cities:
+        try:
+            markets.append(market_input_from_city(city))
+        except LiveDataError as exc:
+            errors[city] = str(exc)
+    return markets, errors
