@@ -49,6 +49,17 @@ PYTHONPATH=src python -m market_attractiveness.cli compare examples/top_20_us_ci
 - Names-only entries are valid and will return `LOW_DATA` until you add dimension values.
 
 ### 5) Auto-fetch a city and score it
+
+### Live data architecture
+- city/metro resolver: OpenStreetMap Nominatim
+- Census ACS fetcher: state-level income/rent/labor proxies
+- BLS fetcher: state unemployment series
+- optional FRED fetcher: macro fallback indicator (if `FRED_API_KEY` set)
+- metric normalization layer: converts raw indicators into 0-100 dimension values
+- MarketInput builder: preserves existing scoring pipeline compatibility
+- fallback profiles: curated city dictionary + deterministic synthetic fallback
+
+You can now score **any city** directly from the CLI via OpenStreetMap Nominatim lookup:
 You can now score **any city** directly from the CLI via OpenStreetMap Nominatim lookup:
 You can now score **any city Teleport supports** directly from the CLI:
 
@@ -57,6 +68,10 @@ PYTHONPATH=src python -m market_attractiveness.cli autofetch "Miami, FL"
 ```
 
 Notes:
+- This uses a multi-source official-data pipeline: Nominatim resolver + Census ACS + BLS (+ optional FRED), with retry logic.
+- Some dimensions are proxies and some may still be missing depending on data availability.
+- Live fetch is fail-safe: if one source is unavailable, the pipeline still returns using available sources or fallback profiles.
+- Common cities (including Nashville, TN) use curated fallback profiles; any other city uses a deterministic synthetic fallback profile so **any city input still returns a score**.
 - This uses live city lookup from OpenStreetMap Nominatim (with retry logic).
 - Some dimensions are proxies and some may still be missing depending on data availability.
 - Live fetch is fail-safe: if Nominatim is unavailable (or returns unexpected data), the app automatically uses fallback scoring instead of failing.

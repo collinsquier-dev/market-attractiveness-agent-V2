@@ -1,6 +1,13 @@
 from market_attractiveness.live_data import market_input_from_city, market_inputs_from_cities
 
 
+def test_market_input_from_city_uses_official_pipeline_when_available(monkeypatch):
+    from market_attractiveness.models import MarketInput
+
+    def fake_pipeline(city: str):
+        return MarketInput(market_name=city)
+
+    monkeypatch.setattr("market_attractiveness.live_data._build_from_official_pipeline", fake_pipeline)
 def test_market_input_from_city_uses_live_lookup_when_available(monkeypatch):
     from market_attractiveness.live_data import _lookup_city_nominatim
 
@@ -23,6 +30,9 @@ def test_market_input_from_city_uses_live_lookup_when_available(monkeypatch):
 
 def test_market_input_from_city_falls_back_to_curated_profile(monkeypatch):
     def boom(_city: str):
+        raise RuntimeError("pipeline down")
+
+    monkeypatch.setattr("market_attractiveness.live_data._build_from_official_pipeline", boom)
         raise RuntimeError("network down")
 
     monkeypatch.setattr("market_attractiveness.live_data._lookup_city_nominatim", boom)
@@ -83,6 +93,9 @@ def test_market_input_from_city_uses_offline_fallback_when_provider_unreachable(
 
 def test_market_input_from_city_falls_back_to_synthetic_for_unknown_city(monkeypatch):
     def boom(_city: str):
+        raise RuntimeError("pipeline down")
+
+    monkeypatch.setattr("market_attractiveness.live_data._build_from_official_pipeline", boom)
         raise RuntimeError("network down")
 
     monkeypatch.setattr("market_attractiveness.live_data._lookup_city_nominatim", boom)

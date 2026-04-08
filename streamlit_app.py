@@ -17,10 +17,16 @@ from market_attractiveness.dashboard_utils import (
     missing_dimension_count,
     strongest_weakest_dimensions,
 )
+from market_attractiveness.live_data import (
+    LiveDataError,
+    market_input_from_city,
+    market_inputs_from_cities,
+)
 from market_attractiveness.live_data import market_input_from_city, market_inputs_from_cities
 from market_attractiveness.models import MarketInput
 from market_attractiveness.narrative import build_narrative_prompt, render_narrative_summary
 from market_attractiveness.scoring import score_market
+
 
 SAMPLE_SINGLE = "examples/sample_market_input.json"
 SAMPLE_COMPARE = "examples/sample_markets_input.json"
@@ -51,6 +57,7 @@ def _render_scorecard(market: MarketInput) -> None:
 
     st.subheader(f"Market: {scorecard.market_name}")
     c1, c2, c3 = st.columns(3)
+    c1.metric("Overall Score", "N/A" if scorecard.overall_score is None else f"{scorecard.overall_score}")
     c1.metric(
         "Overall Score",
         "N/A" if scorecard.overall_score is None else f"{scorecard.overall_score}",
@@ -79,6 +86,7 @@ def _render_comparison(markets: List[MarketInput]) -> None:
     st.subheader("Ranked comparison")
     st.dataframe(compared_markets_as_dict(compared)["ranked_markets"], use_container_width=True)
 
+    selected_market_name = st.selectbox("Select market for detail view", [m.market_name for m in markets])
     selected_market_name = st.selectbox(
         "Select market for detail view",
         [m.market_name for m in markets],
@@ -97,6 +105,7 @@ def main() -> None:
     try:
         if mode == "Single market":
             st.subheader("Single-market input")
+            tab_sample, tab_upload, tab_live = st.tabs(["Use sample", "Upload JSON", "Fetch city live"])
             tab_sample, tab_upload, tab_live = st.tabs(
                 ["Use sample", "Upload JSON", "Fetch city live"]
             )
@@ -108,6 +117,7 @@ def main() -> None:
                     _render_scorecard(market)
 
             with tab_upload:
+                uploaded = st.file_uploader("Upload single-market JSON", type=["json"], key="single_upload")
                 uploaded = st.file_uploader(
                     "Upload single-market JSON",
                     type=["json"],
@@ -119,6 +129,7 @@ def main() -> None:
 
             with tab_live:
                 st.caption("Type a city and fetch live data automatically")
+                city = st.text_input("City", placeholder="e.g., Austin, TX", key="live_city_name")
                 city = st.text_input(
                     "City",
                     placeholder="e.g., Nashville, TN",
@@ -128,6 +139,25 @@ def main() -> None:
                     if not city:
                         st.info("Enter a city to fetch live data.")
                     else:
+                        try:
+                            market = market_input_from_city(city)
+                        except LiveDataError as exc:
+                            st.error(f"Could not fetch city data: {exc}")
+                        else:
+                            _render_scorecard(market)
+        else:
+            st.subheader("Compare markets")
+            source = st.sidebar.radio("Input source", ["Use sample", "Upload JSON", "Fetch cities live"])
+            if source == "Use sample":
+                markets = load_market_array_input(SAMPLE_COMPARE)
+                _render_comparison(markets)
+            elif source == "Upload JSON":
+                uploaded = st.file_uploader("Upload market-array JSON", type=["json"], key="compare_upload")
+                if not uploaded:
+                    st.info("Upload a JSON file to continue.")
+                    return
+                markets = _load_uploaded_markets(uploaded.getvalue())
+                _render_comparison(markets)
                         market = _fetch_city_cached(city)
                         _render_scorecard(market)
 
@@ -189,6 +219,18 @@ Washington, DC"""
                     if not cities:
                         st.info("Enter at least one city.")
                         return
+                    with st.spinner("Fetching city data and scoring..."):
+                        markets, errors = market_inputs_from_cities(cities)
+                    if errors:
+                        st.warning(f"Could not fetch {len(errors)} cities. Showing available results.")
+                        with st.expander("Show city fetch errors"):
+                            for city, err in errors.items():
+                                st.write(f"- {city}: {err}")
+                    if not markets:
+                        st.error("No city data was fetched. Please try different cities.")
+                        return
+                    _render_comparison(markets)
+    except Exception as exc:  # beginner-friendly UX
 
                     with st.spinner("Fetching city data and scoring..."):
                         markets, errors = market_inputs_from_cities(cities)
