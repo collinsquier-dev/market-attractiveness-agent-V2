@@ -1,0 +1,26 @@
+[
+  {
+    "market_name": "Austin, TX",
+    "population_growth_trends": {"value": 82, "confidence": 0.85},
+    "gdp_and_macro_growth": {"value": 78, "confidence": 0.8},
+    "industry_concentration": {"value": 74, "confidence": 0.72},
+    "target_companies": {"count_1000_plus": 64, "count_1b_plus": 18, "confidence": 0.72},
+    "compensation_benchmarks": {"value": 63, "confidence": 0.74},
+    "cost_of_living_and_operating": {"value": 61, "confidence": 0.7},
+    "competitive_intensity": {"value": 52, "confidence": 0.65},
+    "policy_environment": {"value": 79, "confidence": 0.78},
+    "qualitative_momentum_signals": {"value": 75, "confidence": 0.68}
+  },
+  {
+    "market_name": "Raleigh, NC",
+    "population_growth_trends": {"value": 76, "confidence": 0.8},
+    "gdp_and_macro_growth": {"value": 72, "confidence": 0.76},
+    "industry_concentration": {"value": 70, "confidence": 0.71},
+    "target_companies": {"count_1000_plus": 50, "count_1b_plus": 14, "confidence": 0.7},
+    "compensation_benchmarks": {"value": 67, "confidence": 0.73},
+    "cost_of_living_and_operating": {"value": 66, "confidence": 0.74},
+    "competitive_intensity": {"value": 60, "confidence": 0.68},
+    "policy_environment": {"value": 75, "confidence": 0.77},
+    "qualitative_momentum_signals": {"value": 72, "confidence": 0.69}
+  }
+]

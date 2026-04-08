@@ -1,0 +1,49 @@
+{
+  "market_name": "Austin, TX",
+  "population_growth_trends": {
+    "value": 82,
+    "confidence": 0.85,
+    "note": "Population trend remains above national average in recent estimates."
+  },
+  "gdp_and_macro_growth": {
+    "value": 78,
+    "confidence": 0.8,
+    "note": "Regional GDP growth outpaces broader U.S. average."
+  },
+  "industry_concentration": {
+    "value": 74,
+    "confidence": 0.72,
+    "note": "Concentration in tech and advanced services supports specialization."
+  },
+  "target_companies": {
+    "count_1000_plus": 64,
+    "count_1b_plus": 18,
+    "confidence": 0.72,
+    "note": "Counts are illustrative sample values from open-source business directories."
+  },
+  "compensation_benchmarks": {
+    "value": 63,
+    "confidence": 0.74,
+    "note": "Compensation lower than coastal hubs but rising."
+  },
+  "cost_of_living_and_operating": {
+    "value": 61,
+    "confidence": 0.7,
+    "note": "Operating costs still moderate vs tier-1 metros, with upward pressure."
+  },
+  "competitive_intensity": {
+    "value": 52,
+    "confidence": 0.65,
+    "note": "Competition for enterprise clients and talent has intensified."
+  },
+  "policy_environment": {
+    "value": 79,
+    "confidence": 0.78,
+    "note": "Business climate remains favorable for expansion and investment."
+  },
+  "qualitative_momentum_signals": {
+    "value": 75,
+    "confidence": 0.68,
+    "note": "Signals include corporate expansions and sustained economic development activity."
+  }
+}
