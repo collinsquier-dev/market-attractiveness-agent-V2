@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import time
 import urllib.parse
 import urllib.request
 from urllib.error import URLError
@@ -17,11 +18,16 @@ class LiveDataError(RuntimeError):
 
 def _get_json(url: str) -> Dict[str, Any]:
     req = urllib.request.Request(url, headers={"User-Agent": "market-attractiveness-agent/0.1"})
-    try:
-        with urllib.request.urlopen(req, timeout=15) as response:
-            return json.loads(response.read().decode("utf-8"))
-    except URLError as exc:
-        raise LiveDataError(f"Could not reach live data provider: {exc}") from exc
+    last_exc = None
+    for attempt in range(3):
+        try:
+            with urllib.request.urlopen(req, timeout=15) as response:
+                return json.loads(response.read().decode("utf-8"))
+        except URLError as exc:
+            last_exc = exc
+            if attempt < 2:
+                time.sleep(2)
+    raise LiveDataError(f"Could not reach live data provider at {url}: {last_exc}") from last_exc
 
 
 def _to_100(score_10: Optional[float]) -> Optional[float]:
