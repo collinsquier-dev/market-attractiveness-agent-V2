@@ -35,6 +35,13 @@ class ResolvedCity:
     importance: float
 
 
+@dataclass
+class DimensionMetric:
+    value: float
+    confidence: float
+    note: str
+
+
 class PipelineError(RuntimeError):
     pass
 
@@ -87,6 +94,22 @@ class ACSFetcher:
         fips = STATE_ABBR_TO_FIPS.get(city.state_abbr)
         if not fips:
             return {}
+
+        vars_ = [
+            "NAME",
+            "B01003_001E",  # population
+            "B19013_001E",  # median income
+            "B25064_001E",  # median rent
+            "B23025_003E",  # labor force
+            "B23025_005E",  # unemployed
+            "B15003_001E",  # education total
+            "B15003_022E", "B15003_023E", "B15003_024E", "B15003_025E",  # bachelor's+
+        ]
+        url = f"https://api.census.gov/data/2023/acs/acs1?get={','.join(vars_)}&for=state:{fips}"
+        rows = http_get_json(url)
+        if not isinstance(rows, list) or len(rows) < 2:
+            return {}
+
         variables = "NAME,B19013_001E,B25064_001E,B23025_003E,B23025_005E"
         url = f"https://api.census.gov/data/2023/acs/acs1?get={variables}&for=state:{fips}"
         rows = http_get_json(url)
@@ -96,6 +119,15 @@ class ACSFetcher:
         d = dict(zip(hdr, val))
         lf = float(d.get("B23025_003E", 0) or 0)
         unemp = float(d.get("B23025_005E", 0) or 0)
+        edu_total = float(d.get("B15003_001E", 0) or 0)
+        edu_ba_plus = sum(float(d.get(k, 0) or 0) for k in ["B15003_022E", "B15003_023E", "B15003_024E", "B15003_025E"])
+
+        return {
+            "population": float(d.get("B01003_001E", 0) or 0),
+            "median_income": float(d.get("B19013_001E", 0) or 0),
+            "median_rent": float(d.get("B25064_001E", 0) or 0),
+            "unemployment_rate": (unemp / lf * 100.0) if lf > 0 else 0.0,
+            "education_ba_plus_rate": (edu_ba_plus / edu_total * 100.0) if edu_total > 0 else 0.0,
         unemployment_rate = (unemp / lf * 100.0) if lf > 0 else None
         return {
             "median_income": float(d.get("B19013_001E", 0) or 0),
@@ -108,6 +140,10 @@ class BLSFetcher:
     def fetch(self, city: ResolvedCity) -> Dict[str, float]:
         if city.country_code != "US" or not city.state_abbr:
             return {}
+        state_code = STATE_ABBR_TO_FIPS.get(city.state_abbr)
+        if not state_code:
+            return {}
+
         # State unemployment series (LAUS)
         state_code = STATE_ABBR_TO_FIPS.get(city.state_abbr)
         if not state_code:
@@ -156,6 +192,53 @@ class MetricNormalizer:
     def _clamp(v: float, lo: float = 0, hi: float = 100) -> float:
         return max(lo, min(hi, v))
 
+    def normalize(self, city: ResolvedCity, acs: Dict[str, float], bls: Dict[str, float], fred: Dict[str, float]) -> Dict[str, DimensionMetric]:
+        has_acs = bool(acs)
+        has_bls = bool(bls)
+
+        unemp = bls.get("bls_unemployment_rate", acs.get("unemployment_rate", fred.get("fred_unrate", 5.0)))
+        income = acs.get("median_income", 65000.0)
+        rent = acs.get("median_rent", 1400.0)
+        edu = acs.get("education_ba_plus_rate", 30.0)
+
+        gdp_macro = self._clamp(84 - (unemp * 4.4))
+        industry = self._clamp(40 + (edu * 0.7) + city.importance * 20)
+        compensation = self._clamp(30 + (income / 2200.0))
+        cost = self._clamp(88 - (rent / 35.0) + (income / 15000.0))
+        policy = float(POLICY_STATE_SCORE.get(city.state_abbr or "", 66))
+        momentum = self._clamp(42 + city.importance * 34 + (max(0.0, 8.0 - unemp) * 2.2))
+
+        return {
+            "gdp_and_macro_growth": DimensionMetric(
+                value=round(gdp_macro, 2),
+                confidence=0.72 if has_bls else 0.6 if has_acs else 0.45,
+                note="Macro/labor composite from BLS unemployment (preferred), ACS labor proxy, and optional FRED.",
+            ),
+            "industry_concentration": DimensionMetric(
+                value=round(industry, 2),
+                confidence=0.62 if has_acs else 0.48,
+                note="Industry proxy from ACS education mix (BA+) and resolver importance.",
+            ),
+            "compensation_benchmarks": DimensionMetric(
+                value=round(compensation, 2),
+                confidence=0.68 if has_acs else 0.45,
+                note="Compensation proxy from ACS median household income.",
+            ),
+            "cost_of_living_and_operating": DimensionMetric(
+                value=round(cost, 2),
+                confidence=0.68 if has_acs else 0.42,
+                note="Cost proxy from ACS median rent and income ratio.",
+            ),
+            "policy_environment": DimensionMetric(
+                value=round(policy, 2),
+                confidence=0.5,
+                note="Maintainable state-level policy lookup table.",
+            ),
+            "qualitative_momentum_signals": DimensionMetric(
+                value=round(momentum, 2),
+                confidence=0.55 if has_bls or has_acs else 0.35,
+                note="Momentum proxy from city importance and labor conditions.",
+            ),
     def normalize(self, city: ResolvedCity, acs: Dict[str, float], bls: Dict[str, float], fred: Dict[str, float]) -> Dict[str, float]:
         unemp = bls.get("bls_unemployment_rate", acs.get("unemployment_rate", fred.get("fred_unrate", 5.0)))
         median_income = acs.get("median_income", 65000.0)
@@ -179,11 +262,18 @@ class MetricNormalizer:
 
 
 class MarketInputBuilder:
+    def build(self, city: ResolvedCity, metrics: Dict[str, DimensionMetric]):
     def build(self, city: ResolvedCity, normalized: Dict[str, float], source_note: str):
         from .models import DimensionInput, MarketInput
 
         return MarketInput(
             market_name=city.query,
+            gdp_and_macro_growth=DimensionInput(value=metrics["gdp_and_macro_growth"].value, confidence=metrics["gdp_and_macro_growth"].confidence, note=metrics["gdp_and_macro_growth"].note),
+            industry_concentration=DimensionInput(value=metrics["industry_concentration"].value, confidence=metrics["industry_concentration"].confidence, note=metrics["industry_concentration"].note),
+            compensation_benchmarks=DimensionInput(value=metrics["compensation_benchmarks"].value, confidence=metrics["compensation_benchmarks"].confidence, note=metrics["compensation_benchmarks"].note),
+            cost_of_living_and_operating=DimensionInput(value=metrics["cost_of_living_and_operating"].value, confidence=metrics["cost_of_living_and_operating"].confidence, note=metrics["cost_of_living_and_operating"].note),
+            policy_environment=DimensionInput(value=metrics["policy_environment"].value, confidence=metrics["policy_environment"].confidence, note=metrics["policy_environment"].note),
+            qualitative_momentum_signals=DimensionInput(value=metrics["qualitative_momentum_signals"].value, confidence=metrics["qualitative_momentum_signals"].confidence, note=metrics["qualitative_momentum_signals"].note),
             gdp_and_macro_growth=DimensionInput(value=normalized["gdp_and_macro_growth"], confidence=0.62, note=source_note),
             industry_concentration=DimensionInput(value=normalized["industry_concentration"], confidence=0.56, note=source_note),
             compensation_benchmarks=DimensionInput(value=normalized["compensation_benchmarks"], confidence=0.62, note=source_note),

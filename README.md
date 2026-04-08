@@ -71,6 +71,8 @@ Notes:
 - This uses a multi-source official-data pipeline: Nominatim resolver + Census ACS + BLS (+ optional FRED), with retry logic.
 - Some dimensions are proxies and some may still be missing depending on data availability.
 - Live fetch is fail-safe: if one source is unavailable, the pipeline still returns using available sources or fallback profiles.
+- Common cities use curated fallback profiles; any other city uses a deterministic synthetic fallback profile so **any city input still returns a score**.
+- Example curated fallback cities: Nashville, Austin, Chicago, Dallas, Atlanta.
 - Common cities (including Nashville, TN) use curated fallback profiles; any other city uses a deterministic synthetic fallback profile so **any city input still returns a score**.
 - This uses live city lookup from OpenStreetMap Nominatim (with retry logic).
 - Some dimensions are proxies and some may still be missing depending on data availability.
