@@ -4,6 +4,9 @@ set -euo pipefail
 printf '\n==> Running unit tests\n'
 python -m pytest -q
 
+printf '\n==> Verifying indentation safety\n'
+python scripts/verify_indentation.py
+
 printf '\n==> Verifying Python syntax\n'
 python -m py_compile streamlit_app.py src/market_attractiveness/*.py
 

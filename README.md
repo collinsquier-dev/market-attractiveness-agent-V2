@@ -160,3 +160,9 @@ Before opening or updating your PR branch:
 5. Re-run checks after conflict resolution.
 
 If branch protection requires status checks, the new `CI` workflow is what needs to pass for merge.
+
+
+## Troubleshooting
+- If you see an `IndentationError` in `streamlit_app.py`, ensure your local branch is up to date and that your editor is configured for 4-space indentation (no tabs).
+- This repo includes `.editorconfig` to enforce consistent indentation across environments.
+- Run `python scripts/verify_indentation.py` to detect tabs/inconsistent indentation before running Streamlit.
