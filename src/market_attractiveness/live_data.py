@@ -13,6 +13,7 @@ from .official_pipeline import (
     MetricNormalizer,
 )
 
+
 OFFLINE_CITY_PROFILES: dict[str, dict[str, float]] = {
     "nashville, tn": {"economy": 72, "startups": 66, "salaries": 61, "cost": 58, "business_freedom": 74},
     "austin, tx": {"economy": 78, "startups": 76, "salaries": 64, "cost": 55, "business_freedom": 76},
@@ -27,6 +28,7 @@ OFFLINE_CITY_PROFILES: dict[str, dict[str, float]] = {
 
 class LiveDataError(RuntimeError):
     """Raised when live city lookup fails."""
+    pass
 
 
 def _normalize_city_key(city_name: object) -> str:
@@ -40,6 +42,7 @@ def _offline_market_input(city_name: str) -> MarketInput:
     if profile:
         note = "Offline curated fallback profile used because live lookup was unavailable."
     else:
+    if not profile:
         digest = hashlib.sha256(_normalize_city_key(city_name).encode("utf-8")).hexdigest()
         seed = int(digest[:8], 16)
         profile = {
@@ -75,6 +78,15 @@ def _minimal_safe_market_input(city_name: object) -> MarketInput:
         cost_of_living_and_operating=DimensionInput(value=55, confidence=0.3, note=note),
         policy_environment=DimensionInput(value=60, confidence=0.3, note=note),
         qualitative_momentum_signals=DimensionInput(value=57, confidence=0.25, note=note),
+
+    return MarketInput(
+        market_name=city_name,
+        gdp_and_macro_growth=DimensionInput(value=profile["economy"], confidence=0.4),
+        industry_concentration=DimensionInput(value=profile["startups"], confidence=0.4),
+        compensation_benchmarks=DimensionInput(value=profile["salaries"], confidence=0.4),
+        cost_of_living_and_operating=DimensionInput(value=profile["cost"], confidence=0.4),
+        policy_environment=DimensionInput(value=profile["business_freedom"], confidence=0.4),
+        qualitative_momentum_signals=DimensionInput(value=profile["startups"], confidence=0.35),
     )
 
 
@@ -90,6 +102,7 @@ def _build_from_official_pipeline(city_name: str) -> MarketInput:
     acs_metrics: Dict[str, float] = acs.fetch(resolved)
     bls_metrics: Dict[str, float] = bls.fetch(resolved)
     fred_metrics: Dict[str, float] = fred.fetch(resolved)
+
     normalized = normalizer.normalize(resolved, acs_metrics, bls_metrics, fred_metrics)
 
     return builder.build(resolved, normalized)
@@ -107,6 +120,15 @@ def market_input_from_city(city_name: str) -> MarketInput:
             return _offline_market_input(safe_city_name)
     except Exception:
         return _minimal_safe_market_input(city_name)
+    safe_city_name = str(city_name).strip()
+
+    if not safe_city_name:
+        return _offline_market_input("unknown")
+
+    try:
+        return _build_from_official_pipeline(safe_city_name)
+    except Exception:
+        return _offline_market_input(safe_city_name)
 
 
 def market_inputs_from_cities(cities: list[str]) -> tuple[list[MarketInput], dict[str, str]]:
@@ -159,3 +181,12 @@ def city_score_report_from_city(city_name: str) -> dict:
         "weakest_dimension": weak,
         "narrative_summary": render_narrative_summary(scorecard),
     }
+
+    for city in cities:
+        try:
+            markets.append(market_input_from_city(city))
+        except Exception as exc:
+            errors[str(city)] = str(exc)
+
+    return markets, errors
+
