@@ -122,21 +122,7 @@ def main() -> None:
                             st.error(f"Could not fetch city data: {exc}")
                         else:
                             _render_scorecard(market)
- with tab_live:
-    st.caption("Type a city and fetch live data automatically")
-    city = st.text_input("City", placeholder="e.g., Austin, TX", key="live_city_name")
-    if st.button("Fetch & score city", key="fetch_score_city"):
-        if not city:
-            st.info("Enter a city to fetch live data.")
-        else:
-            try:
-                market = _fetch_city_cached(city)
-            except LiveDataError as exc:
-                st.warning("Live city data is temporarily unavailable.")
-                st.error(f"Could not fetch city data: {exc}")
-                st.info("Use the sample tab or upload JSON while live data is unavailable.")
-            else:
-                _render_scorecard(market)
+ 
         else:
             st.subheader("Compare markets")
             source = st.sidebar.radio("Input source", ["Use sample", "Upload JSON", "Fetch cities live"])
