@@ -33,6 +33,7 @@ LABELS: Dict[str, str] = {
     "gdp_and_macro_growth": "GDP and macro growth indicators",
     "industry_concentration": "Industry concentration",
     "target_companies": "Target company density (1,000+ employees and $1B+ revenue)",
+    "consulting_demand_signals": "Consulting demand signals",
     "compensation_benchmarks": "Compensation benchmarks",
     "cost_of_living_and_operating": "Cost of living / operating cost",
     "competitive_intensity": "Competitive intensity",
