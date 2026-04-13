@@ -354,9 +354,10 @@ class MarketInputBuilder:
     def build(self, city: ResolvedCity, metrics: Dict[str, DimensionMetric]) -> MarketInput:
         pop = metrics["population_growth_trends"].raw_value
         income = metrics["compensation_benchmarks"].raw_value
+        edu = metrics["industry_concentration"].raw_value
 
-        count_1000_plus = int(max(5, min(220, pop / 350000)))
-        count_1b_plus = int(max(2, min(90, (income / 2000) / 5)))
+        count_1000_plus = int(max(5, min(220, (pop / 350000) + (edu / 4))))
+        count_1b_plus = int(max(2, min(90, ((income / 2000) / 5) + city.importance * 8)))
 
         def dim(key: str) -> DimensionInput:
             m = metrics[key]
