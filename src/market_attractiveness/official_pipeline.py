@@ -22,8 +22,18 @@ STATE_ABBR_TO_FIPS = {
 }
 
 POLICY_STATE_SCORE = {
-    "TX": 76, "FL": 75, "TN": 74, "NC": 72, "GA": 72, "UT": 74, "CO": 70,
-    "CA": 63, "NY": 61, "WA": 68, "IL": 62, "MA": 67,
+    "TX": 76,
+    "FL": 75,
+    "TN": 74,
+    "NC": 72,
+    "GA": 72,
+    "UT": 74,
+    "CO": 70,
+    "CA": 63,
+    "NY": 61,
+    "WA": 68,
+    "IL": 62,
+    "MA": 67,
 }
 
 
@@ -230,7 +240,10 @@ class MetricNormalizer:
         has_bls = bool(bls)
         level = "state" if has_acs or has_bls else "resolver"
 
-        unemp = bls.get("bls_unemployment_rate", acs.get("unemployment_rate", fred.get("fred_unrate", 5.0)))
+        unemp = bls.get(
+            "bls_unemployment_rate",
+            acs.get("unemployment_rate", fred.get("fred_unrate", 5.0)),
+        )
         income = acs.get("median_income", 65000.0)
         rent = acs.get("median_rent", 1400.0)
         edu = acs.get("education_ba_plus_rate", 30.0)
@@ -266,6 +279,21 @@ class MetricNormalizer:
                 direct_vs_proxy="proxy",
                 confidence_score=0.62 if has_acs else 0.48,
                 explanation="Industry proxy from BA+ education share and resolver importance.",
+            ),
+            "consulting_demand_signals": DimensionMetric(
+                raw_value=city.importance,
+                normalized_score=self._clamp(
+                    30
+                    + city.importance * 35
+                    + (income / 4000.0)
+                    + max(0.0, 8.0 - unemp) * 2.5
+                ),
+                source="Resolver + ACS + BLS",
+                source_date=d,
+                geographic_level_used=level,
+                direct_vs_proxy="proxy",
+                confidence_score=0.60 if has_bls or has_acs else 0.35,
+                explanation="Consulting demand proxy from city prominence, income level, and labor-market tightness.",
             ),
             "compensation_benchmarks": DimensionMetric(
                 raw_value=income,
@@ -309,7 +337,9 @@ class MetricNormalizer:
             ),
             "qualitative_momentum_signals": DimensionMetric(
                 raw_value=city.importance,
-                normalized_score=self._clamp(42 + city.importance * 34 + max(0.0, 8.0 - unemp) * 2.2),
+                normalized_score=self._clamp(
+                    42 + city.importance * 34 + max(0.0, 8.0 - unemp) * 2.2
+                ),
                 source="Resolver + labor",
                 source_date=d,
                 geographic_level_used=level,
@@ -351,6 +381,7 @@ class MarketInputBuilder:
                 confidence=0.45,
                 note="Proxy from population/income scale due to sparse direct company registry in default pipeline.",
             ),
+            consulting_demand_signals=dim("consulting_demand_signals"),
             compensation_benchmarks=dim("compensation_benchmarks"),
             cost_of_living_and_operating=dim("cost_of_living_and_operating"),
             competitive_intensity=dim("competitive_intensity"),
