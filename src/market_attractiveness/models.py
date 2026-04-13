@@ -35,9 +35,6 @@ class TargetCompanyInput:
 
 
 @dataclass
-from dataclasses import dataclass, field
-
-@dataclass
 class MarketInput:
     market_name: str
     population_growth_trends: DimensionInput = field(default_factory=DimensionInput)
@@ -50,6 +47,7 @@ class MarketInput:
     competitive_intensity: DimensionInput = field(default_factory=DimensionInput)
     policy_environment: DimensionInput = field(default_factory=DimensionInput)
     qualitative_momentum_signals: DimensionInput = field(default_factory=DimensionInput)
+
 
 @dataclass
 class DimensionScore:
