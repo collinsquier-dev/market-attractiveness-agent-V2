@@ -149,3 +149,18 @@ def score_market(market: MarketInput) -> MarketScorecard:
         confidence_flag=confidence_flag,
         dimension_scores=dimension_scores,
     )
+def recommend_market(scorecard: MarketScorecard) -> str:
+    if scorecard.overall_score is None:
+        return "Insufficient data"
+
+    score = scorecard.overall_score
+    confidence = scorecard.overall_confidence
+
+    if score > 75 and confidence > 0.7:
+        return "ENTER MARKET NOW"
+    elif score > 65:
+        return "BUILD RELATIONSHIPS / TEST MARKET"
+    elif score > 55:
+        return "MONITOR MARKET"
+    else:
+        return "DEPRIORITIZE"
