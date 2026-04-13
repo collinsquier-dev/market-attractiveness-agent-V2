@@ -16,15 +16,16 @@ from .models import (
 #   and momentum/activity signals
 # - Lighter weight on population growth and pure cost factors
 DIMENSION_WEIGHTS: Dict[str, float] = {
-    "population_growth_trends": 0.08,
-    "gdp_and_macro_growth": 0.14,
-    "industry_concentration": 0.14,
-    "target_companies": 0.18,
-    "compensation_benchmarks": 0.08,
-    "cost_of_living_and_operating": 0.08,
+    "population_growth_trends": 0.06,
+    "gdp_and_macro_growth": 0.12,
+    "industry_concentration": 0.12,
+    "target_companies": 0.16,
+    "consulting_demand_signals": 0.16,
+    "compensation_benchmarks": 0.07,
+    "cost_of_living_and_operating": 0.07,
     "competitive_intensity": 0.08,
-    "policy_environment": 0.08,
-    "qualitative_momentum_signals": 0.14,
+    "policy_environment": 0.06,
+    "qualitative_momentum_signals": 0.10,
 }
 
 LABELS: Dict[str, str] = {
