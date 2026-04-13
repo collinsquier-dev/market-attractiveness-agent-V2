@@ -42,7 +42,6 @@ def _offline_market_input(city_name: str) -> MarketInput:
     if profile:
         note = "Offline curated fallback profile used because live lookup was unavailable."
     else:
-    if not profile:
         digest = hashlib.sha256(_normalize_city_key(city_name).encode("utf-8")).hexdigest()
         seed = int(digest[:8], 16)
         profile = {
@@ -69,7 +68,9 @@ def _minimal_safe_market_input(city_name: object) -> MarketInput:
     market_name = str(city_name).strip() if city_name is not None else "Unknown"
     if not market_name:
         market_name = "Unknown"
+
     note = "Emergency fallback profile used to guarantee non-failing scoring."
+
     return MarketInput(
         market_name=market_name,
         gdp_and_macro_growth=DimensionInput(value=60, confidence=0.3, note=note),
@@ -78,15 +79,6 @@ def _minimal_safe_market_input(city_name: object) -> MarketInput:
         cost_of_living_and_operating=DimensionInput(value=55, confidence=0.3, note=note),
         policy_environment=DimensionInput(value=60, confidence=0.3, note=note),
         qualitative_momentum_signals=DimensionInput(value=57, confidence=0.25, note=note),
-
-    return MarketInput(
-        market_name=city_name,
-        gdp_and_macro_growth=DimensionInput(value=profile["economy"], confidence=0.4),
-        industry_concentration=DimensionInput(value=profile["startups"], confidence=0.4),
-        compensation_benchmarks=DimensionInput(value=profile["salaries"], confidence=0.4),
-        cost_of_living_and_operating=DimensionInput(value=profile["cost"], confidence=0.4),
-        policy_environment=DimensionInput(value=profile["business_freedom"], confidence=0.4),
-        qualitative_momentum_signals=DimensionInput(value=profile["startups"], confidence=0.35),
     )
 
 
@@ -109,45 +101,38 @@ def _build_from_official_pipeline(city_name: str) -> MarketInput:
 
 
 def market_input_from_city(city_name: str) -> MarketInput:
-    try:
-        safe_city_name = str(city_name).strip() if city_name is not None else ""
-        if not safe_city_name:
-            return _minimal_safe_market_input(city_name)
-
-        try:
-            return _build_from_official_pipeline(safe_city_name)
-        except Exception:
-            return _offline_market_input(safe_city_name)
-    except Exception:
-        return _minimal_safe_market_input(city_name)
-    safe_city_name = str(city_name).strip()
+    safe_city_name = str(city_name).strip() if city_name is not None else ""
 
     if not safe_city_name:
-        return _offline_market_input("unknown")
+        return _minimal_safe_market_input(city_name)
 
     try:
         return _build_from_official_pipeline(safe_city_name)
     except Exception:
-        return _offline_market_input(safe_city_name)
+        try:
+            return _offline_market_input(safe_city_name)
+        except Exception:
+            return _minimal_safe_market_input(city_name)
 
 
 def market_inputs_from_cities(cities: list[str]) -> tuple[list[MarketInput], dict[str, str]]:
     markets: list[MarketInput] = []
     errors: dict[str, str] = {}
+
     for city in cities:
         try:
             markets.append(market_input_from_city(city))
-        except Exception as exc:  # pragma: no cover
+        except Exception as exc:
             errors[str(city)] = str(exc)
-    return markets, errors
 
+    return markets, errors
 
 
 def city_score_report_from_city(city_name: str) -> dict:
     """Return enriched report with dimension metadata + score summary."""
-    from .scoring import score_market
-    from .dashboard_utils import strongest_weakest_dimensions, missing_dimension_count
+    from .dashboard_utils import missing_dimension_count, strongest_weakest_dimensions
     from .narrative import render_narrative_summary
+    from .scoring import score_market
 
     market = market_input_from_city(city_name)
     scorecard = score_market(market)
@@ -173,7 +158,10 @@ def city_score_report_from_city(city_name: str) -> dict:
         "city": city_name,
         "dimensions": dimensions,
         "structural_score": scorecard.overall_score,
-        "momentum_score": next((x["normalized_score"] for x in dimensions if x["name"] == "Qualitative open-source momentum signals"), None),
+        "momentum_score": next(
+            (x["normalized_score"] for x in dimensions if x["name"] == "Qualitative open-source momentum signals"),
+            None,
+        ),
         "overall_score": scorecard.overall_score,
         "overall_confidence": scorecard.overall_confidence,
         "missing_dimension_count": missing_dimension_count(scorecard),
@@ -181,12 +169,4 @@ def city_score_report_from_city(city_name: str) -> dict:
         "weakest_dimension": weak,
         "narrative_summary": render_narrative_summary(scorecard),
     }
-
-    for city in cities:
-        try:
-            markets.append(market_input_from_city(city))
-        except Exception as exc:
-            errors[str(city)] = str(exc)
-
-    return markets, errors
 
