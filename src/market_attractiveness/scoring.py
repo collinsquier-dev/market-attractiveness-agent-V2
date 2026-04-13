@@ -10,16 +10,21 @@ from .models import (
     TargetCompanyInput,
 )
 
+# TGG-specific weighting logic:
+# - Prioritize enterprise demand and transformation opportunity
+# - Heavier weight on target company density, macro health, industry concentration,
+#   and momentum/activity signals
+# - Lighter weight on population growth and pure cost factors
 DIMENSION_WEIGHTS: Dict[str, float] = {
-    "population_growth_trends": 0.12,
-    "gdp_and_macro_growth": 0.12,
-    "industry_concentration": 0.10,
-    "target_companies": 0.14,
-    "compensation_benchmarks": 0.10,
-    "cost_of_living_and_operating": 0.12,
-    "competitive_intensity": 0.10,
-    "policy_environment": 0.10,
-    "qualitative_momentum_signals": 0.10,
+    "population_growth_trends": 0.08,
+    "gdp_and_macro_growth": 0.14,
+    "industry_concentration": 0.14,
+    "target_companies": 0.18,
+    "compensation_benchmarks": 0.08,
+    "cost_of_living_and_operating": 0.08,
+    "competitive_intensity": 0.08,
+    "policy_environment": 0.08,
+    "qualitative_momentum_signals": 0.14,
 }
 
 LABELS: Dict[str, str] = {
