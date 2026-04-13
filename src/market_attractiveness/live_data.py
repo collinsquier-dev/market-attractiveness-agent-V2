@@ -57,6 +57,7 @@ def _offline_market_input(city_name: str) -> MarketInput:
         market_name=city_name,
         gdp_and_macro_growth=DimensionInput(value=profile["economy"], confidence=0.4, note=note),
         industry_concentration=DimensionInput(value=profile["startups"], confidence=0.4, note=note),
+        consulting_demand_signals=DimensionInput(value=profile["startups"], confidence=0.4, note=note),
         compensation_benchmarks=DimensionInput(value=profile["salaries"], confidence=0.4, note=note),
         cost_of_living_and_operating=DimensionInput(value=profile["cost"], confidence=0.4, note=note),
         policy_environment=DimensionInput(value=profile["business_freedom"], confidence=0.4, note=note),
@@ -75,6 +76,7 @@ def _minimal_safe_market_input(city_name: object) -> MarketInput:
         market_name=market_name,
         gdp_and_macro_growth=DimensionInput(value=60, confidence=0.3, note=note),
         industry_concentration=DimensionInput(value=58, confidence=0.3, note=note),
+        consulting_demand_signals=DimensionInput(value=59, confidence=0.25, note=note),
         compensation_benchmarks=DimensionInput(value=56, confidence=0.3, note=note),
         cost_of_living_and_operating=DimensionInput(value=55, confidence=0.3, note=note),
         policy_environment=DimensionInput(value=60, confidence=0.3, note=note),
@@ -169,4 +171,3 @@ def city_score_report_from_city(city_name: str) -> dict:
         "weakest_dimension": weak,
         "narrative_summary": render_narrative_summary(scorecard),
     }
-
