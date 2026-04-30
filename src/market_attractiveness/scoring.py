@@ -11,10 +11,9 @@ from .models import (
 )
 
 # TGG-specific weighting logic:
-# - Prioritize enterprise demand and transformation opportunity
-# - Heavier weight on target company density, macro health, industry concentration,
-#   and momentum/activity signals
-# - Lighter weight on population growth and pure cost factors
+# Prioritizes markets where a smaller consulting firm can realistically win:
+# enterprise / upper-mid-market density, consulting demand, macro health,
+# industry sophistication, and reasonable market accessibility.
 DIMENSION_WEIGHTS: Dict[str, float] = {
     "population_growth_trends": 0.06,
     "gdp_and_macro_growth": 0.12,
@@ -32,7 +31,7 @@ LABELS: Dict[str, str] = {
     "population_growth_trends": "Population growth trends",
     "gdp_and_macro_growth": "GDP and macro growth indicators",
     "industry_concentration": "Industry concentration",
-    "target_companies": "Target company density (1,000+ employees and $1B+ revenue)",
+    "target_companies": "Target company density (1,000+ employees and $500M+ revenue)",
     "consulting_demand_signals": "Consulting demand signals",
     "compensation_benchmarks": "Compensation benchmarks",
     "cost_of_living_and_operating": "Cost of living / operating cost",
@@ -59,6 +58,7 @@ def _score_dimension(name: str, data: DimensionInput, weight: float) -> Dimensio
 
     score = _clamp(float(data.value), 0.0, 100.0)
     confidence = 0.65 if data.confidence is None else _clamp(float(data.confidence), 0.0, 1.0)
+
     return DimensionScore(
         name=LABELS[name],
         score=round(score, 2),
@@ -70,7 +70,7 @@ def _score_dimension(name: str, data: DimensionInput, weight: float) -> Dimensio
 
 
 def _score_target_companies(data: TargetCompanyInput, weight: float) -> DimensionScore:
-    if data.count_1000_plus is None or data.count_1b_plus is None:
+    if data.count_1000_plus is None or data.count_500m_plus is None:
         return DimensionScore(
             name=LABELS["target_companies"],
             score=None,
@@ -80,14 +80,21 @@ def _score_target_companies(data: TargetCompanyInput, weight: float) -> Dimensio
             rationale=data.note or "Missing one or both target-company counts.",
         )
 
+    # 100 companies with 1,000+ employees is treated as a strong scaled-enterprise base.
     employee_subscore = _clamp((data.count_1000_plus / 100) * 100, 0.0, 100.0)
-    revenue_subscore = _clamp((data.count_1b_plus / 30) * 100, 0.0, 100.0)
-    score = 0.55 * employee_subscore + 0.45 * revenue_subscore
+
+    # 60 companies with $500M+ revenue is treated as a strong upper-mid-market / enterprise base.
+    revenue_subscore = _clamp((data.count_500m_plus / 60) * 100, 0.0, 100.0)
+
+    # For TGG, revenue threshold matters as much as employee count because $500M+ firms
+    # are large enough to buy transformation, execution, data, and operating-model work.
+    score = 0.50 * employee_subscore + 0.50 * revenue_subscore
+
     confidence = 0.65 if data.confidence is None else _clamp(float(data.confidence), 0.0, 1.0)
 
     rationale = data.note or (
         f"Derived from counts: 1000+ employees={data.count_1000_plus}, "
-        f"$1B+ revenue={data.count_1b_plus}."
+        f"$500M+ revenue={data.count_500m_plus}."
     )
 
     return DimensionScore(
@@ -122,6 +129,7 @@ def score_market(market: MarketInput) -> MarketScorecard:
             if key == "target_companies"
             else _score_dimension(key, getattr(market, key), weight)
         )
+
         dimension_scores.append(dim_score)
 
         if dim_score.missing or dim_score.score is None:
@@ -142,6 +150,7 @@ def score_market(market: MarketInput) -> MarketScorecard:
         overall_confidence = round(weighted_conf / used_weight, 2)
 
     confidence_flag = _confidence_flag(overall_confidence, missing_count / total_dims)
+
     return MarketScorecard(
         market_name=market.market_name,
         overall_score=overall_score,
@@ -149,18 +158,37 @@ def score_market(market: MarketInput) -> MarketScorecard:
         confidence_flag=confidence_flag,
         dimension_scores=dimension_scores,
     )
-def recommend_market(scorecard: MarketScorecard) -> str:
+
+
+def recommend_market(scorecard: MarketScorecard) -> dict:
     if scorecard.overall_score is None:
-        return "Insufficient data"
+        return {
+            "decision": "INSUFFICIENT DATA",
+            "reason": "Missing key dimensions or low-confidence inputs.",
+        }
 
     score = scorecard.overall_score
     confidence = scorecard.overall_confidence
 
-    if score > 75 and confidence > 0.7:
-        return "ENTER MARKET NOW"
-    elif score > 65:
-        return "BUILD RELATIONSHIPS / TEST MARKET"
-    elif score > 55:
-        return "MONITOR MARKET"
-    else:
-        return "DEPRIORITIZE"
+    if score >= 75 and confidence >= 0.70:
+        return {
+            "decision": "ENTER MARKET",
+            "reason": "Strong overall attractiveness with high-confidence signals.",
+        }
+
+    if score >= 65 and confidence >= 0.55:
+        return {
+            "decision": "BUILD RELATIONSHIPS / TEST MARKET",
+            "reason": "Promising market, but local validation is still needed.",
+        }
+
+    if score >= 55:
+        return {
+            "decision": "MONITOR",
+            "reason": "Potential exists, but signals are not strong enough yet.",
+        }
+
+    return {
+        "decision": "DEPRIORITIZE",
+        "reason": "Weak demand or structural fundamentals relative to alternatives.",
+    }
