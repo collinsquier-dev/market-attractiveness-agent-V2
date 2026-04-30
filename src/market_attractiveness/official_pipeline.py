@@ -135,6 +135,7 @@ class ACSFetcher:
             "B15003_024E",
             "B15003_025E",
         ]
+
         url = f"https://api.census.gov/data/2023/acs/acs1?get={','.join(variables)}&for=state:{fips}"
         rows = http_get_json(url)
 
@@ -283,17 +284,18 @@ class MetricNormalizer:
             "consulting_demand_signals": DimensionMetric(
                 raw_value=city.importance,
                 normalized_score=self._clamp(
-                    30
-                    + city.importance * 35
-                    + (income / 4000.0)
-                    + max(0.0, 8.0 - unemp) * 2.5
+                    25
+                    + city.importance * 30
+                    + (income / 3500.0)
+                    + max(0.0, 7.5 - unemp) * 3.0
+                    + (edu * 0.5)
                 ),
                 source="Resolver + ACS + BLS",
                 source_date=d,
                 geographic_level_used=level,
                 direct_vs_proxy="proxy",
-                confidence_score=0.60 if has_bls or has_acs else 0.35,
-                explanation="Consulting demand proxy from city prominence, income level, and labor-market tightness.",
+                confidence_score=0.65 if has_bls or has_acs else 0.40,
+                explanation="Consulting demand proxy from city prominence, income, labor tightness, and education/talent base.",
             ),
             "compensation_benchmarks": DimensionMetric(
                 raw_value=income,
@@ -317,13 +319,15 @@ class MetricNormalizer:
             ),
             "competitive_intensity": DimensionMetric(
                 raw_value=city.importance,
-                normalized_score=self._clamp(45 + city.importance * 40 + (pop / 20_000_000.0)),
+                normalized_score=self._clamp(
+                    100 - (45 + city.importance * 40 + (pop / 20_000_000.0))
+                ),
                 source="Resolver + ACS",
                 source_date=d,
                 geographic_level_used=level,
                 direct_vs_proxy="proxy",
                 confidence_score=0.50 if has_acs else 0.40,
-                explanation="Competitive intensity proxy from city prominence and population scale.",
+                explanation="Winnability proxy: lower saturation and lower prominence produce a higher score for smaller-firm entry.",
             ),
             "policy_environment": DimensionMetric(
                 raw_value=float(POLICY_STATE_SCORE.get(city.state_abbr or "", 66)),
@@ -356,8 +360,10 @@ class MarketInputBuilder:
         income = metrics["compensation_benchmarks"].raw_value
         edu = metrics["industry_concentration"].raw_value
 
+        # Estimate upper-mid-market / enterprise company density.
+        # TGG target threshold is $500M+ revenue rather than $1B+ revenue.
         count_1000_plus = int(max(5, min(220, (pop / 350000) + (edu / 4))))
-        count_1b_plus = int(max(2, min(90, ((income / 2000) / 5) + city.importance * 8)))
+        count_500m_plus = int(max(5, min(120, ((income / 1800) / 4) + city.importance * 8)))
 
         def dim(key: str) -> DimensionInput:
             m = metrics[key]
@@ -378,9 +384,9 @@ class MarketInputBuilder:
             industry_concentration=dim("industry_concentration"),
             target_companies=TargetCompanyInput(
                 count_1000_plus=count_1000_plus,
-                count_1b_plus=count_1b_plus,
+                count_500m_plus=count_500m_plus,
                 confidence=0.45,
-                note="Proxy from population/income scale due to sparse direct company registry in default pipeline.",
+                note="Proxy estimate for 1,000+ employee and $500M+ revenue companies using population, income, education, and city prominence.",
             ),
             consulting_demand_signals=dim("consulting_demand_signals"),
             compensation_benchmarks=dim("compensation_benchmarks"),
@@ -389,4 +395,3 @@ class MarketInputBuilder:
             policy_environment=dim("policy_environment"),
             qualitative_momentum_signals=dim("qualitative_momentum_signals"),
         )
-        
