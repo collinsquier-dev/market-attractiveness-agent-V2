@@ -361,7 +361,6 @@ class MarketInputBuilder:
         income = metrics["compensation_benchmarks"].raw_value
         edu = metrics["industry_concentration"].raw_value
 
-        count_1000_plus = int(max(5, min(220, (pop / 350000) + (edu / 4))))
         count_500m_plus = int(max(5, min(120, ((income / 1800) / 4) + city.importance * 8)))
 
         def dim(key: str) -> DimensionInput:
@@ -381,11 +380,10 @@ class MarketInputBuilder:
             population_growth_trends=dim("population_growth_trends"),
             gdp_and_macro_growth=dim("gdp_and_macro_growth"),
             industry_concentration=dim("industry_concentration"),
-            target_companies=TargetCompanyInput(
-                count_1000_plus=count_1000_plus,
+           target_companies=TargetCompanyInput(
                 count_500m_plus=count_500m_plus,
                 confidence=0.45,
-                note="Proxy estimate for 1,000+ employee and $500M+ revenue companies.",
+                note="Proxy estimate for $500M+ revenue companies using income and market size.",
             ),
             consulting_demand_signals=dim("consulting_demand_signals"),
             compensation_benchmarks=dim("compensation_benchmarks"),
