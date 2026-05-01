@@ -10,15 +10,18 @@ from .models import (
     TargetCompanyInput,
 )
 
+# TGG-specific weighting logic:
+# This model prioritizes markets where a smaller/mid-sized consulting firm
+# can realistically win, not just the largest markets.
 DIMENSION_WEIGHTS: Dict[str, float] = {
     "population_growth_trends": 0.06,
-    "gdp_and_macro_growth": 0.12,
-    "industry_concentration": 0.12,
-    "target_companies": 0.16,
-    "consulting_demand_signals": 0.16,
-    "compensation_benchmarks": 0.07,
-    "cost_of_living_and_operating": 0.07,
-    "competitive_intensity": 0.08,
+    "gdp_and_macro_growth": 0.11,
+    "industry_concentration": 0.11,
+    "target_companies": 0.12,
+    "consulting_demand_signals": 0.13,
+    "compensation_benchmarks": 0.06,
+    "cost_of_living_and_operating": 0.10,
+    "competitive_intensity": 0.15,
     "policy_environment": 0.06,
     "qualitative_momentum_signals": 0.10,
 }
@@ -31,7 +34,7 @@ LABELS: Dict[str, str] = {
     "consulting_demand_signals": "Consulting demand signals",
     "compensation_benchmarks": "Compensation benchmarks",
     "cost_of_living_and_operating": "Cost of living / operating cost",
-    "competitive_intensity": "Competitive intensity / winnability",
+    "competitive_intensity": "Market winnability / lower competitive saturation",
     "policy_environment": "Pro-business reforms / policy environment",
     "qualitative_momentum_signals": "Qualitative open-source momentum signals",
 }
@@ -164,13 +167,13 @@ def recommend_market(scorecard: MarketScorecard) -> dict:
     if score >= 75 and confidence >= 0.70:
         return {
             "decision": "ENTER MARKET",
-            "reason": "Strong overall attractiveness with high-confidence signals.",
+            "reason": "Strong attractiveness and strong confidence.",
         }
 
     if score >= 65 and confidence >= 0.55:
         return {
             "decision": "BUILD RELATIONSHIPS / TEST MARKET",
-            "reason": "Promising market, but local validation is still needed.",
+            "reason": "Promising market, but local validation is needed.",
         }
 
     if score >= 55:
@@ -181,5 +184,5 @@ def recommend_market(scorecard: MarketScorecard) -> dict:
 
     return {
         "decision": "DEPRIORITIZE",
-        "reason": "Weak demand or structural fundamentals relative to alternatives.",
+        "reason": "Weak demand, poor winnability, or limited structural attractiveness.",
     }
