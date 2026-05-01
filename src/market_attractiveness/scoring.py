@@ -13,19 +13,17 @@ from .models import (
 # TGG-specific weighting logic:
 # This model prioritizes markets where a smaller/mid-sized consulting firm
 # can realistically win, not just the largest markets.
-DIMENSION_WEIGHTS: Dict[str, float] = {
-    "population_growth_trends": 0.06,
-    "gdp_and_macro_growth": 0.11,
-    "industry_concentration": 0.11,
-    "target_companies": 0.12,
-    "consulting_demand_signals": 0.13,
-    "compensation_benchmarks": 0.06,
-    "cost_of_living_and_operating": 0.10,
-    "competitive_intensity": 0.15,
+DIMENSION_WEIGHTS = {
+    "population_growth_trends": 0.07,
+    "gdp_and_macro_growth": 0.12,
+    "industry_concentration": 0.12,
+    "target_companies": 0.14,
+    "consulting_demand_signals": 0.15,
+    "cost_of_living_and_operating": 0.12,
+    "competitive_intensity": 0.16,
     "policy_environment": 0.06,
-    "qualitative_momentum_signals": 0.10,
+    "qualitative_momentum_signals": 0.06,
 }
-
 LABELS: Dict[str, str] = {
     "population_growth_trends": "Population growth trends",
     "gdp_and_macro_growth": "GDP and macro growth indicators",
