@@ -54,11 +54,9 @@ def _offline_market_input(city_name: str) -> MarketInput:
         note = "Synthetic fallback profile generated because live lookup was unavailable."
 
     return MarketInput(
-    market_name=city_name,
     target_companies=TargetCompanyInput(
-        count_1000_plus=max(5, int(profile["startups"] * 1.2)),
-        count_500m_plus=max(5, int(profile["economy"] * 1.1)),
-        confidence=0.35,
+        count_500m_plus=20,
+        confidence=0.25,
         note=note,
     ),
     gdp_and_macro_growth=DimensionInput(value=profile["economy"], confidence=0.4, note=note),
