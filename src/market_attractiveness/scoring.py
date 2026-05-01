@@ -30,7 +30,6 @@ LABELS: Dict[str, str] = {
     "industry_concentration": "Industry concentration",
     "target_companies": "Target company density (1,000+ employees and $500M+ revenue)",
     "consulting_demand_signals": "Consulting demand signals",
-    "compensation_benchmarks": "Compensation benchmarks",
     "cost_of_living_and_operating": "Cost of living / operating cost",
     "competitive_intensity": "Market winnability / lower competitive saturation",
     "policy_environment": "Pro-business reforms / policy environment",
