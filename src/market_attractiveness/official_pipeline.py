@@ -376,7 +376,7 @@ class MarketInputBuilder:
                 ),
             )
 
-                return MarketInput(
+        return MarketInput(
             market_name=city.query,
             population_growth_trends=dim("population_growth_trends"),
             gdp_and_macro_growth=dim("gdp_and_macro_growth"),
@@ -385,7 +385,7 @@ class MarketInputBuilder:
                 count_1000_plus=count_1000_plus,
                 count_500m_plus=count_500m_plus,
                 confidence=0.45,
-                note="Proxy estimate for 1,000+ employee and $500M+ revenue companies using population, income, education, and city prominence.",
+                note="Proxy estimate for 1,000+ employee and $500M+ revenue companies.",
             ),
             consulting_demand_signals=dim("consulting_demand_signals"),
             compensation_benchmarks=dim("compensation_benchmarks"),
