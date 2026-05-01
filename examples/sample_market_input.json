@@ -14,13 +14,12 @@
     "value": 74,
     "confidence": 0.72,
     "note": "Concentration in tech and advanced services supports specialization."
-  },
+ },  
   "target_companies": {
-    "count_1000_plus": 64,
-    "count_1b_plus": 18,
-    "confidence": 0.72,
-    "note": "Counts are illustrative sample values from open-source business directories."
-  },
+  "count_500m_plus": 20,
+  "confidence": 0.45,
+  "note": "Estimated $500M+ revenue company count."
+},
   "compensation_benchmarks": {
     "value": 63,
     "confidence": 0.74,
