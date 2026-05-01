@@ -10,10 +10,6 @@ from .models import (
     TargetCompanyInput,
 )
 
-# TGG-specific weighting logic:
-# Prioritizes markets where a smaller consulting firm can realistically win:
-# enterprise / upper-mid-market density, consulting demand, macro health,
-# industry sophistication, and reasonable market accessibility.
 DIMENSION_WEIGHTS: Dict[str, float] = {
     "population_growth_trends": 0.06,
     "gdp_and_macro_growth": 0.12,
@@ -35,7 +31,7 @@ LABELS: Dict[str, str] = {
     "consulting_demand_signals": "Consulting demand signals",
     "compensation_benchmarks": "Compensation benchmarks",
     "cost_of_living_and_operating": "Cost of living / operating cost",
-    "competitive_intensity": "Competitive intensity",
+    "competitive_intensity": "Competitive intensity / winnability",
     "policy_environment": "Pro-business reforms / policy environment",
     "qualitative_momentum_signals": "Qualitative open-source momentum signals",
 }
@@ -80,14 +76,9 @@ def _score_target_companies(data: TargetCompanyInput, weight: float) -> Dimensio
             rationale=data.note or "Missing one or both target-company counts.",
         )
 
-    # 100 companies with 1,000+ employees is treated as a strong scaled-enterprise base.
     employee_subscore = _clamp((data.count_1000_plus / 100) * 100, 0.0, 100.0)
-
-    # 60 companies with $500M+ revenue is treated as a strong upper-mid-market / enterprise base.
     revenue_subscore = _clamp((data.count_500m_plus / 60) * 100, 0.0, 100.0)
 
-    # For TGG, revenue threshold matters as much as employee count because $500M+ firms
-    # are large enough to buy transformation, execution, data, and operating-model work.
     score = 0.50 * employee_subscore + 0.50 * revenue_subscore
 
     confidence = 0.65 if data.confidence is None else _clamp(float(data.confidence), 0.0, 1.0)
