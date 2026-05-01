@@ -360,10 +360,8 @@ class MarketInputBuilder:
         income = metrics["compensation_benchmarks"].raw_value
         edu = metrics["industry_concentration"].raw_value
 
-        # Estimate upper-mid-market / enterprise company density.
-        # TGG target threshold is $500M+ revenue rather than $1B+ revenue.
         count_1000_plus = int(max(5, min(220, (pop / 350000) + (edu / 4))))
-        count_500m_plus = int(max(5, min(120, ((income / 1800) / 4) + city.importance * 8)))
+        count_500m_plus = int(max(5, min(120, ((income / 1800) / 4) + city.importance * 8))))
 
         def dim(key: str) -> DimensionInput:
             m = metrics[key]
@@ -383,11 +381,11 @@ class MarketInputBuilder:
             gdp_and_macro_growth=dim("gdp_and_macro_growth"),
             industry_concentration=dim("industry_concentration"),
             target_companies=TargetCompanyInput(
-                count_1000_plus=count_1000_plus,
-                count_500m_plus=count_500m_plus,
-                confidence=0.45,
-                note="Proxy estimate for 1,000+ employee and $500M+ revenue companies using population, income, education, and city prominence.",
-            ),
+            count_1000_plus=count_1000_plus,
+            count_500m_plus=count_500m_plus,
+            confidence=0.45,
+            note="Proxy estimate for 1,000+ employee and $500M+ revenue companies using population, income, education, and city prominence.",
+        ),
             consulting_demand_signals=dim("consulting_demand_signals"),
             compensation_benchmarks=dim("compensation_benchmarks"),
             cost_of_living_and_operating=dim("cost_of_living_and_operating"),
