@@ -78,7 +78,6 @@ def _minimal_safe_market_input(city_name: object) -> MarketInput:
     return MarketInput(
     market_name=market_name,
     target_companies=TargetCompanyInput(
-        count_1000_plus=25,
         count_500m_plus=20,
         confidence=0.25,
         note=note,
