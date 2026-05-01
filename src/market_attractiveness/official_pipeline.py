@@ -361,7 +361,7 @@ class MarketInputBuilder:
         edu = metrics["industry_concentration"].raw_value
 
         count_1000_plus = int(max(5, min(220, (pop / 350000) + (edu / 4))))
-        count_500m_plus = int(max(5, min(120, ((income / 1800) / 4) + city.importance * 8))))
+        count_500m_plus = int(max(5, min(120, ((income / 1800) / 4) + city.importance * 8)))
 
         def dim(key: str) -> DimensionInput:
             m = metrics[key]
