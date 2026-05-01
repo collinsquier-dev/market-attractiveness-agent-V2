@@ -69,27 +69,20 @@ def _score_dimension(name: str, data: DimensionInput, weight: float) -> Dimensio
 
 
 def _score_target_companies(data: TargetCompanyInput, weight: float) -> DimensionScore:
-    if data.count_1000_plus is None or data.count_500m_plus is None:
+    if data.count_500m_plus is None:
         return DimensionScore(
             name=LABELS["target_companies"],
             score=None,
             weight=weight,
             confidence=0.0,
             missing=True,
-            rationale=data.note or "Missing one or both target-company counts.",
+            rationale=data.note or "Missing $500M+ company count.",
         )
 
-    employee_subscore = _clamp((data.count_1000_plus / 100) * 100, 0.0, 100.0)
-    revenue_subscore = _clamp((data.count_500m_plus / 60) * 100, 0.0, 100.0)
-
-    score = 0.50 * employee_subscore + 0.50 * revenue_subscore
+    # 60+ companies = strong market
+    score = _clamp((data.count_500m_plus / 60) * 100, 0.0, 100.0)
 
     confidence = 0.65 if data.confidence is None else _clamp(float(data.confidence), 0.0, 1.0)
-
-    rationale = data.note or (
-        f"Derived from counts: 1000+ employees={data.count_1000_plus}, "
-        f"$500M+ revenue={data.count_500m_plus}."
-    )
 
     return DimensionScore(
         name=LABELS["target_companies"],
@@ -97,7 +90,7 @@ def _score_target_companies(data: TargetCompanyInput, weight: float) -> Dimensio
         weight=weight,
         confidence=round(confidence, 2),
         missing=False,
-        rationale=rationale,
+        rationale=data.note or f"Based on {data.count_500m_plus} companies with $500M+ revenue.",
     )
 
 
