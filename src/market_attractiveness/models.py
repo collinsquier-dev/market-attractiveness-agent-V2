@@ -22,13 +22,11 @@ class DimensionInput:
 class TargetCompanyInput:
     """Structured inputs for target-company density dimension.
 
-    count_1000_plus: number of companies with 1,000+ employees.
     count_500m_plus: number of companies with $500M+ revenue.
     confidence: 0.0-1.0 confidence in company counts.
     note: optional context.
     """
 
-    count_1000_plus: Optional[int] = None
     count_500m_plus: Optional[int] = None
     confidence: Optional[float] = None
     note: Optional[str] = None
