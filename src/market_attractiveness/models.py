@@ -33,7 +33,6 @@ class TargetCompanyInput:
     confidence: Optional[float] = None
     note: Optional[str] = None
 
-
 @dataclass
 class MarketInput:
     market_name: str
