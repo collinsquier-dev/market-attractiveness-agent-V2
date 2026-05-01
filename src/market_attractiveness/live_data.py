@@ -67,28 +67,28 @@ def _offline_market_input(city_name: str) -> MarketInput:
     qualitative_momentum_signals=DimensionInput(value=profile["startups"], confidence=0.35, note=note),
 )
 
+def _minimal_safe_market_input(market_name: str) -> MarketInput:
+    note = "Fallback data"
 
-def _minimal_safe_market_input(city_name: object) -> MarketInput:
-    market_name = str(city_name).strip() if city_name is not None else "Unknown"
-    if not market_name:
-        market_name = "Unknown"
+    variation = _city_variation(market_name)
 
-    note = "Emergency fallback profile used to guarantee non-failing scoring."
+    base = 60 + variation
 
     return MarketInput(
-    market_name=market_name,
-    target_companies=TargetCompanyInput(
-        count_500m_plus=20,
-        confidence=0.25,
-        note=note,
-    ),
-    gdp_and_macro_growth=DimensionInput(value=60, confidence=0.3, note=note),
-    industry_concentration=DimensionInput(value=58, confidence=0.3, note=note),
-    consulting_demand_signals=DimensionInput(value=59, confidence=0.25, note=note),
-    cost_of_living_and_operating=DimensionInput(value=55, confidence=0.3, note=note),
-    policy_environment=DimensionInput(value=60, confidence=0.3, note=note),
-    qualitative_momentum_signals=DimensionInput(value=57, confidence=0.25, note=note),
-)
+        market_name=market_name,
+        target_companies=TargetCompanyInput(
+            count_500m_plus=20 + variation,
+            confidence=0.25,
+            note=note,
+        ),
+        gdp_and_macro_growth=DimensionInput(value=base, confidence=0.3, note=note),
+        industry_concentration=DimensionInput(value=base - 2, confidence=0.3, note=note),
+        consulting_demand_signals=DimensionInput(value=base + 3, confidence=0.25, note=note),
+        cost_of_living_and_operating=DimensionInput(value=base - 5, confidence=0.3, note=note),
+        competitive_intensity=DimensionInput(value=base - 3, confidence=0.3, note=note),
+        policy_environment=DimensionInput(value=base, confidence=0.3, note=note),
+        qualitative_momentum_signals=DimensionInput(value=base + 1, confidence=0.25, note=note),
+    )
 
 def _build_from_official_pipeline(city_name: str) -> MarketInput:
     resolver = CityMetroResolver()
