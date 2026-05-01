@@ -69,6 +69,7 @@ def http_get_json(url: str, retries: int = 3, backoff_seconds: float = 0.8) -> A
         "User-Agent": "market-attractiveness-agent/official-data-pipeline",
         "Accept": "application/json",
     }
+
     last_exc: Exception | None = None
 
     for attempt in range(retries):
@@ -124,12 +125,12 @@ class ACSFetcher:
 
         variables = [
             "NAME",
-            "B01003_001E",  # population
-            "B19013_001E",  # median income
-            "B25064_001E",  # median rent
-            "B23025_003E",  # labor force
-            "B23025_005E",  # unemployed
-            "B15003_001E",  # education total
+            "B01003_001E",
+            "B19013_001E",
+            "B25064_001E",
+            "B23025_003E",
+            "B23025_005E",
+            "B15003_001E",
             "B15003_022E",
             "B15003_023E",
             "B15003_024E",
@@ -253,7 +254,7 @@ class MetricNormalizer:
         return {
             "population_growth_trends": DimensionMetric(
                 raw_value=pop,
-                normalized_score=self._clamp(35 + city.importance * 35),
+                normalized_score=self._clamp(35 + city.importance * 30),
                 source="ACS/Resolver",
                 source_date=d,
                 geographic_level_used=level,
@@ -273,7 +274,7 @@ class MetricNormalizer:
             ),
             "industry_concentration": DimensionMetric(
                 raw_value=edu,
-                normalized_score=self._clamp(40 + edu * 0.7 + city.importance * 20),
+                normalized_score=self._clamp(40 + edu * 0.7 + city.importance * 15),
                 source="ACS + resolver",
                 source_date=d,
                 geographic_level_used=level,
@@ -284,18 +285,18 @@ class MetricNormalizer:
             "consulting_demand_signals": DimensionMetric(
                 raw_value=city.importance,
                 normalized_score=self._clamp(
-                    25
-                    + city.importance * 30
-                    + (income / 3500.0)
-                    + max(0.0, 7.5 - unemp) * 3.0
-                    + (edu * 0.5)
+                    22
+                    + city.importance * 24
+                    + (income / 4200.0)
+                    + max(0.0, 7.5 - unemp) * 2.7
+                    + edu * 0.45
                 ),
                 source="Resolver + ACS + BLS",
                 source_date=d,
                 geographic_level_used=level,
                 direct_vs_proxy="proxy",
                 confidence_score=0.65 if has_bls or has_acs else 0.40,
-                explanation="Consulting demand proxy from city prominence, income, labor tightness, and education/talent base.",
+                explanation="Consulting demand proxy tuned for TGG: city prominence, income, labor tightness, and education/talent base.",
             ),
             "compensation_benchmarks": DimensionMetric(
                 raw_value=income,
@@ -309,25 +310,25 @@ class MetricNormalizer:
             ),
             "cost_of_living_and_operating": DimensionMetric(
                 raw_value=rent,
-                normalized_score=self._clamp(88 - rent / 35.0 + income / 15000.0),
+                normalized_score=self._clamp(92 - rent / 32.0 + income / 16000.0),
                 source="ACS",
                 source_date=d,
                 geographic_level_used=level,
                 direct_vs_proxy="direct" if has_acs else "proxy",
                 confidence_score=0.68 if has_acs else 0.42,
-                explanation="Cost proxy from rent-to-income relationship.",
+                explanation="Cost proxy from rent-to-income relationship; lower operating cost improves smaller-firm attractiveness.",
             ),
             "competitive_intensity": DimensionMetric(
                 raw_value=city.importance,
                 normalized_score=self._clamp(
-                    100 - (45 + city.importance * 40 + (pop / 20_000_000.0))
+                    100 - (52 + city.importance * 48 + pop / 12_000_000.0)
                 ),
                 source="Resolver + ACS",
                 source_date=d,
                 geographic_level_used=level,
                 direct_vs_proxy="proxy",
                 confidence_score=0.50 if has_acs else 0.40,
-                explanation="Winnability proxy: lower saturation and lower prominence produce a higher score for smaller-firm entry.",
+                explanation="Winnability proxy: lower saturation and lower prominence produce higher scores for smaller-firm entry.",
             ),
             "policy_environment": DimensionMetric(
                 raw_value=float(POLICY_STATE_SCORE.get(city.state_abbr or "", 66)),
@@ -342,7 +343,7 @@ class MetricNormalizer:
             "qualitative_momentum_signals": DimensionMetric(
                 raw_value=city.importance,
                 normalized_score=self._clamp(
-                    42 + city.importance * 34 + max(0.0, 8.0 - unemp) * 2.2
+                    42 + city.importance * 30 + max(0.0, 8.0 - unemp) * 2.2
                 ),
                 source="Resolver + labor",
                 source_date=d,
@@ -381,10 +382,18 @@ class MarketInputBuilder:
             gdp_and_macro_growth=dim("gdp_and_macro_growth"),
             industry_concentration=dim("industry_concentration"),
             target_companies=TargetCompanyInput(
-            count_1000_plus=count_1000_plus,
-            count_500m_plus=count_500m_plus,
-            confidence=0.45,
-            note="Proxy estimate for 1,000+ employee and $500M+ revenue companies using population, income, education, and city prominence.",
+                count_1000_plus=count_1000_plus,
+                count_500m_plus=count_500m_plus,
+                confidence=0.45,
+                note="Proxy estimate for 1,000+ employee and $500M+ revenue companies using population, income, education, and city prominence.",
+            ),
+            consulting_demand_signals=dim("consulting_demand_signals"),
+            compensation_benchmarks=dim("compensation_benchmarks"),
+            cost_of_living_and_operating=dim("cost_of_living_and_operating"),
+            competitive_intensity=dim("competitive_intensity"),
+            policy_environment=dim("policy_environment"),
+            qualitative_momentum_signals=dim("qualitative_momentum_signals"),
+        )
         ),
             consulting_demand_signals=dim("consulting_demand_signals"),
             compensation_benchmarks=dim("compensation_benchmarks"),
