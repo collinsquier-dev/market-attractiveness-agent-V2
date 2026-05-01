@@ -39,7 +39,6 @@ class MarketInput:
     industry_concentration: DimensionInput = field(default_factory=DimensionInput)
     target_companies: TargetCompanyInput = field(default_factory=TargetCompanyInput)
     consulting_demand_signals: DimensionInput = field(default_factory=DimensionInput)
-    compensation_benchmarks: DimensionInput = field(default_factory=DimensionInput)
     cost_of_living_and_operating: DimensionInput = field(default_factory=DimensionInput)
     competitive_intensity: DimensionInput = field(default_factory=DimensionInput)
     policy_environment: DimensionInput = field(default_factory=DimensionInput)
