@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 from typing import Dict
 
-from .models import DimensionInput, MarketInput
+from .models import DimensionInput, MarketInput, TargetCompanyInput
 from .official_pipeline import (
     ACSFetcher,
     BLSFetcher,
@@ -54,15 +54,21 @@ def _offline_market_input(city_name: str) -> MarketInput:
         note = "Synthetic fallback profile generated because live lookup was unavailable."
 
     return MarketInput(
-        market_name=city_name,
-        gdp_and_macro_growth=DimensionInput(value=profile["economy"], confidence=0.4, note=note),
-        industry_concentration=DimensionInput(value=profile["startups"], confidence=0.4, note=note),
-        consulting_demand_signals=DimensionInput(value=profile["startups"], confidence=0.4, note=note),
-        compensation_benchmarks=DimensionInput(value=profile["salaries"], confidence=0.4, note=note),
-        cost_of_living_and_operating=DimensionInput(value=profile["cost"], confidence=0.4, note=note),
-        policy_environment=DimensionInput(value=profile["business_freedom"], confidence=0.4, note=note),
-        qualitative_momentum_signals=DimensionInput(value=profile["startups"], confidence=0.35, note=note),
-    )
+    market_name=city_name,
+    target_companies=TargetCompanyInput(
+        count_1000_plus=max(5, int(profile["startups"] * 1.2)),
+        count_500m_plus=max(5, int(profile["economy"] * 1.1)),
+        confidence=0.35,
+        note=note,
+    ),
+    gdp_and_macro_growth=DimensionInput(value=profile["economy"], confidence=0.4, note=note),
+    industry_concentration=DimensionInput(value=profile["startups"], confidence=0.4, note=note),
+    consulting_demand_signals=DimensionInput(value=profile["startups"], confidence=0.4, note=note),
+    compensation_benchmarks=DimensionInput(value=profile["salaries"], confidence=0.4, note=note),
+    cost_of_living_and_operating=DimensionInput(value=profile["cost"], confidence=0.4, note=note),
+    policy_environment=DimensionInput(value=profile["business_freedom"], confidence=0.4, note=note),
+    qualitative_momentum_signals=DimensionInput(value=profile["startups"], confidence=0.35, note=note),
+)
 
 
 def _minimal_safe_market_input(city_name: object) -> MarketInput:
@@ -73,16 +79,21 @@ def _minimal_safe_market_input(city_name: object) -> MarketInput:
     note = "Emergency fallback profile used to guarantee non-failing scoring."
 
     return MarketInput(
-        market_name=market_name,
-        gdp_and_macro_growth=DimensionInput(value=60, confidence=0.3, note=note),
-        industry_concentration=DimensionInput(value=58, confidence=0.3, note=note),
-        consulting_demand_signals=DimensionInput(value=59, confidence=0.25, note=note),
-        compensation_benchmarks=DimensionInput(value=56, confidence=0.3, note=note),
-        cost_of_living_and_operating=DimensionInput(value=55, confidence=0.3, note=note),
-        policy_environment=DimensionInput(value=60, confidence=0.3, note=note),
-        qualitative_momentum_signals=DimensionInput(value=57, confidence=0.25, note=note),
-    )
-
+    market_name=market_name,
+    target_companies=TargetCompanyInput(
+        count_1000_plus=25,
+        count_500m_plus=20,
+        confidence=0.25,
+        note=note,
+    ),
+    gdp_and_macro_growth=DimensionInput(value=60, confidence=0.3, note=note),
+    industry_concentration=DimensionInput(value=58, confidence=0.3, note=note),
+    consulting_demand_signals=DimensionInput(value=59, confidence=0.25, note=note),
+    compensation_benchmarks=DimensionInput(value=56, confidence=0.3, note=note),
+    cost_of_living_and_operating=DimensionInput(value=55, confidence=0.3, note=note),
+    policy_environment=DimensionInput(value=60, confidence=0.3, note=note),
+    qualitative_momentum_signals=DimensionInput(value=57, confidence=0.25, note=note),
+)
 
 def _build_from_official_pipeline(city_name: str) -> MarketInput:
     resolver = CityMetroResolver()
