@@ -15,14 +15,14 @@ from .official_pipeline import (
 
 
 OFFLINE_CITY_PROFILES: dict[str, dict[str, float]] = {
-    "nashville, tn": {"economy": 72, "startups": 66, "salaries": 61, "cost": 58, "business_freedom": 74},
-    "austin, tx": {"economy": 78, "startups": 76, "salaries": 64, "cost": 55, "business_freedom": 76},
-    "chicago, il": {"economy": 70, "startups": 67, "salaries": 66, "cost": 49, "business_freedom": 62},
-    "dallas, tx": {"economy": 76, "startups": 72, "salaries": 63, "cost": 57, "business_freedom": 76},
-    "atlanta, ga": {"economy": 74, "startups": 70, "salaries": 61, "cost": 56, "business_freedom": 72},
-    "miami, fl": {"economy": 71, "startups": 68, "salaries": 60, "cost": 50, "business_freedom": 72},
-    "denver, co": {"economy": 73, "startups": 71, "salaries": 62, "cost": 52, "business_freedom": 73},
-    "seattle, wa": {"economy": 79, "startups": 74, "salaries": 70, "cost": 43, "business_freedom": 70},
+    "nashville, tn": {"economy": 72, "startups": 66, "cost": 58, "business_freedom": 74},
+    "austin, tx": {"economy": 78, "startups": 76, "cost": 55, "business_freedom": 76},
+    "chicago, il": {"economy": 70, "startups": 67, "cost": 49, "business_freedom": 62},
+    "dallas, tx": {"economy": 76, "startups": 72, "cost": 57, "business_freedom": 76},
+    "atlanta, ga": {"economy": 74, "startups": 70, "cost": 56, "business_freedom": 72},
+    "miami, fl": {"economy": 71, "startups": 68, "cost": 50, "business_freedom": 72},
+    "denver, co": {"economy": 73, "startups": 71, "cost": 52, "business_freedom": 73},
+    "seattle, wa": {"economy": 79, "startups": 74, "cost": 43, "business_freedom": 70},
 }
 
 
@@ -36,59 +36,74 @@ def _normalize_city_key(city_name: object) -> str:
     return " ".join(name.strip().lower().split())
 
 
+def _city_variation(city_name: object) -> int:
+    """Stable city-specific variation so fallback scores do not all look identical."""
+    key = _normalize_city_key(city_name)
+    if not key:
+        key = "unknown"
+    digest = hashlib.md5(key.encode("utf-8")).hexdigest()
+    h = int(digest, 16)
+    return (h % 20) - 10
+
+
 def _offline_market_input(city_name: str) -> MarketInput:
-    profile = OFFLINE_CITY_PROFILES.get(_normalize_city_key(city_name))
+    key = _normalize_city_key(city_name)
+    profile = OFFLINE_CITY_PROFILES.get(key)
 
     if profile:
         note = "Offline curated fallback profile used because live lookup was unavailable."
     else:
-        digest = hashlib.sha256(_normalize_city_key(city_name).encode("utf-8")).hexdigest()
-        seed = int(digest[:8], 16)
+        variation = _city_variation(city_name)
         profile = {
-            "economy": 55 + (seed % 21),
-            "startups": 50 + ((seed >> 3) % 26),
-            "salaries": 48 + ((seed >> 6) % 23),
-            "cost": 45 + ((seed >> 9) % 21),
-            "business_freedom": 52 + ((seed >> 12) % 24),
+            "economy": 60 + variation,
+            "startups": 58 + variation,
+            "cost": 55 - variation,
+            "business_freedom": 60 + int(variation / 2),
         }
         note = "Synthetic fallback profile generated because live lookup was unavailable."
 
     return MarketInput(
-    target_companies=TargetCompanyInput(
-        count_500m_plus=20,
-        confidence=0.25,
-        note=note,
-    ),
-    gdp_and_macro_growth=DimensionInput(value=profile["economy"], confidence=0.4, note=note),
-    industry_concentration=DimensionInput(value=profile["startups"], confidence=0.4, note=note),
-    consulting_demand_signals=DimensionInput(value=profile["startups"], confidence=0.4, note=note),
-    cost_of_living_and_operating=DimensionInput(value=profile["cost"], confidence=0.4, note=note),
-    policy_environment=DimensionInput(value=profile["business_freedom"], confidence=0.4, note=note),
-    qualitative_momentum_signals=DimensionInput(value=profile["startups"], confidence=0.35, note=note),
-)
+        market_name=city_name,
+        target_companies=TargetCompanyInput(
+            count_500m_plus=max(5, int(profile["economy"] * 0.9)),
+            confidence=0.30,
+            note=note,
+        ),
+        gdp_and_macro_growth=DimensionInput(value=profile["economy"], confidence=0.35, note=note),
+        industry_concentration=DimensionInput(value=profile["startups"], confidence=0.35, note=note),
+        consulting_demand_signals=DimensionInput(value=profile["startups"], confidence=0.35, note=note),
+        cost_of_living_and_operating=DimensionInput(value=profile["cost"], confidence=0.35, note=note),
+        competitive_intensity=DimensionInput(value=max(0, min(100, 75 - profile["startups"] * 0.5)), confidence=0.30, note=note),
+        policy_environment=DimensionInput(value=profile["business_freedom"], confidence=0.35, note=note),
+        qualitative_momentum_signals=DimensionInput(value=profile["startups"], confidence=0.30, note=note),
+    )
 
-def _minimal_safe_market_input(market_name: str) -> MarketInput:
-    note = "Fallback data"
+
+def _minimal_safe_market_input(city_name: object) -> MarketInput:
+    market_name = str(city_name).strip() if city_name is not None else "Unknown"
+    if not market_name:
+        market_name = "Unknown"
 
     variation = _city_variation(market_name)
-
     base = 60 + variation
+    note = "Emergency fallback profile used to guarantee non-failing scoring."
 
     return MarketInput(
         market_name=market_name,
         target_companies=TargetCompanyInput(
-            count_500m_plus=20 + variation,
+            count_500m_plus=max(5, 20 + variation),
             confidence=0.25,
             note=note,
         ),
-        gdp_and_macro_growth=DimensionInput(value=base, confidence=0.3, note=note),
-        industry_concentration=DimensionInput(value=base - 2, confidence=0.3, note=note),
+        gdp_and_macro_growth=DimensionInput(value=base, confidence=0.25, note=note),
+        industry_concentration=DimensionInput(value=base - 2, confidence=0.25, note=note),
         consulting_demand_signals=DimensionInput(value=base + 3, confidence=0.25, note=note),
-        cost_of_living_and_operating=DimensionInput(value=base - 5, confidence=0.3, note=note),
-        competitive_intensity=DimensionInput(value=base - 3, confidence=0.3, note=note),
-        policy_environment=DimensionInput(value=base, confidence=0.3, note=note),
+        cost_of_living_and_operating=DimensionInput(value=base - 5, confidence=0.25, note=note),
+        competitive_intensity=DimensionInput(value=base - 3, confidence=0.25, note=note),
+        policy_environment=DimensionInput(value=base, confidence=0.25, note=note),
         qualitative_momentum_signals=DimensionInput(value=base + 1, confidence=0.25, note=note),
     )
+
 
 def _build_from_official_pipeline(city_name: str) -> MarketInput:
     resolver = CityMetroResolver()
@@ -104,7 +119,6 @@ def _build_from_official_pipeline(city_name: str) -> MarketInput:
     fred_metrics: Dict[str, float] = fred.fetch(resolved)
 
     normalized = normalizer.normalize(resolved, acs_metrics, bls_metrics, fred_metrics)
-
     return builder.build(resolved, normalized)
 
 
@@ -120,7 +134,7 @@ def market_input_from_city(city_name: str) -> MarketInput:
         try:
             return _offline_market_input(safe_city_name)
         except Exception:
-            return _minimal_safe_market_input(city_name)
+            return _minimal_safe_market_input(safe_city_name)
 
 
 def market_inputs_from_cities(cities: list[str]) -> tuple[list[MarketInput], dict[str, str]]:
