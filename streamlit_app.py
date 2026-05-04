@@ -17,6 +17,10 @@ from market_attractiveness.dashboard_utils import (
     missing_dimension_count,
     strongest_weakest_dimensions,
 )
+from market_attractiveness.industry_targeting import (
+    estimate_revenue_opportunity,
+    score_industry_opportunities,
+)
 from market_attractiveness.live_data import (
     LiveDataError,
     market_input_from_city,
@@ -25,11 +29,11 @@ from market_attractiveness.live_data import (
 from market_attractiveness.models import MarketInput
 from market_attractiveness.narrative import build_narrative_prompt, render_narrative_summary
 from market_attractiveness.scoring import (
-    score_market,
-    demand_score,
-    winnability_score,
     bain_style_final_score,
+    demand_score,
     recommend_market_bain,
+    score_market,
+    winnability_score,
 )
 
 SAMPLE_SINGLE = "examples/sample_market_input.json"
@@ -88,14 +92,52 @@ def _render_scorecard(market: MarketInput) -> None:
     st.markdown(
         f"""
         **Decision summary:**  
-        This market has a **Demand Score of {demand if demand is not None else 'N/A'}** and a 
-        **Winnability Score of {winnability if winnability is not None else 'N/A'}**, resulting in a 
+        This market has a **Demand Score of {demand if demand is not None else 'N/A'}** and a
+        **Winnability Score of {winnability if winnability is not None else 'N/A'}**, resulting in a
         **Final Decision Score of {final_score if final_score is not None else 'N/A'}**.
 
         The recommendation is **{recommendation['decision']}** because the model weighs both market opportunity
         and the firm's ability to realistically win work in the market.
         """
     )
+
+    st.subheader("Industry Opportunity Targeting")
+
+    industry_opportunities = score_industry_opportunities(market)
+
+    industry_rows = [
+        {
+            "Industry": x.industry,
+            "Opportunity Score": x.score,
+            "Rationale": x.rationale,
+        }
+        for x in industry_opportunities
+    ]
+
+    if industry_rows:
+        st.dataframe(industry_rows, use_container_width=True)
+
+        top_industry = industry_opportunities[0]
+        st.write(
+            f"**Top industry to target:** {top_industry.industry} "
+            f"({top_industry.score}/100)"
+        )
+    else:
+        st.info("No industry opportunity scores available.")
+
+    st.subheader("Estimated Revenue Opportunity")
+
+    revenue = estimate_revenue_opportunity(market)
+
+    r1, r2, r3 = st.columns(3)
+    r1.metric("$500M+ Target Companies", revenue["target_company_count"])
+    r2.metric("Assumed Capture Rate", f"{revenue['penetration_rate']}%")
+    r3.metric(
+        "Annual Opportunity Range",
+        f"${revenue['low_revenue']:,.0f} – ${revenue['high_revenue']:,.0f}",
+    )
+
+    st.caption(revenue["summary"])
 
     st.write(f"**Strongest dimension:** {strongest or 'N/A'}")
     st.write(f"**Weakest dimension:** {weakest or 'N/A'}")
