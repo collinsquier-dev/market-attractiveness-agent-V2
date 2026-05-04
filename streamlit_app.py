@@ -60,7 +60,7 @@ def _render_scorecard(market: MarketInput) -> None:
 
     demand = demand_score(scorecard)
     winnability = winnability_score(scorecard)
-    bain_score = bain_style_final_score(scorecard)
+    final_score = bain_style_final_score(scorecard)
     recommendation = recommend_market_bain(scorecard)
 
     strongest, weakest = strongest_weakest_dimensions(scorecard)
@@ -69,21 +69,33 @@ def _render_scorecard(market: MarketInput) -> None:
 
     c1, c2, c3 = st.columns(3)
     c1.metric(
-        "Overall Score",
+        "Overall Model Score",
         "N/A" if scorecard.overall_score is None else f"{scorecard.overall_score}",
     )
     c2.metric("Confidence Flag", scorecard.confidence_flag)
     c3.metric("Missing Dimensions", missing_dimension_count(scorecard))
 
-    st.subheader("Bain-Style Decision View")
+    st.subheader("Decision Summary")
 
     b1, b2, b3 = st.columns(3)
     b1.metric("Demand Score", "N/A" if demand is None else f"{demand}")
     b2.metric("Winnability Score", "N/A" if winnability is None else f"{winnability}")
-    b3.metric("Final TGG Score", "N/A" if bain_score is None else f"{bain_score}")
+    b3.metric("Final Decision Score", "N/A" if final_score is None else f"{final_score}")
 
     st.write(f"**Recommendation:** {recommendation['decision']}")
     st.caption(recommendation["reason"])
+
+    st.markdown(
+        f"""
+        **Decision summary:**  
+        This market has a **Demand Score of {demand if demand is not None else 'N/A'}** and a 
+        **Winnability Score of {winnability if winnability is not None else 'N/A'}**, resulting in a 
+        **Final Decision Score of {final_score if final_score is not None else 'N/A'}**.
+
+        The recommendation is **{recommendation['decision']}** because the model weighs both market opportunity
+        and the firm's ability to realistically win work in the market.
+        """
+    )
 
     st.write(f"**Strongest dimension:** {strongest or 'N/A'}")
     st.write(f"**Weakest dimension:** {weakest or 'N/A'}")
@@ -124,7 +136,7 @@ def _render_comparison(markets: List[MarketInput]) -> None:
 def main() -> None:
     st.set_page_config(page_title="Market Attractiveness Dashboard", layout="wide")
     st.title("Market Attractiveness Dashboard")
-    st.caption("Deterministic scoring from external market conditions only.")
+    st.caption("Decision-support tool for evaluating market attractiveness and winnability.")
 
     mode = st.sidebar.radio(
         "Mode",
