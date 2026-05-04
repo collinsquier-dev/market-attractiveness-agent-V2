@@ -57,13 +57,33 @@ def _load_uploaded_markets(content: bytes) -> List[MarketInput]:
 
 def _render_scorecard(market: MarketInput) -> None:
     scorecard = score_market(market)
+
+    demand = demand_score(scorecard)
+    winnability = winnability_score(scorecard)
+    bain_score = bain_style_final_score(scorecard)
+    recommendation = recommend_market_bain(scorecard)
+
     strongest, weakest = strongest_weakest_dimensions(scorecard)
 
     st.subheader(f"Market: {scorecard.market_name}")
+
     c1, c2, c3 = st.columns(3)
-    c1.metric("Overall Score", "N/A" if scorecard.overall_score is None else f"{scorecard.overall_score}")
+    c1.metric(
+        "Overall Score",
+        "N/A" if scorecard.overall_score is None else f"{scorecard.overall_score}",
+    )
     c2.metric("Confidence Flag", scorecard.confidence_flag)
     c3.metric("Missing Dimensions", missing_dimension_count(scorecard))
+
+    st.subheader("Bain-Style Decision View")
+
+    b1, b2, b3 = st.columns(3)
+    b1.metric("Demand Score", "N/A" if demand is None else f"{demand}")
+    b2.metric("Winnability Score", "N/A" if winnability is None else f"{winnability}")
+    b3.metric("Final TGG Score", "N/A" if bain_score is None else f"{bain_score}")
+
+    st.write(f"**Recommendation:** {recommendation['decision']}")
+    st.caption(recommendation["reason"])
 
     st.write(f"**Strongest dimension:** {strongest or 'N/A'}")
     st.write(f"**Weakest dimension:** {weakest or 'N/A'}")
@@ -77,20 +97,26 @@ def _render_scorecard(market: MarketInput) -> None:
 
     st.subheader("Narrative explanation")
     st.write(render_narrative_summary(scorecard))
+
     with st.expander("Prompt template used for LLM narrative"):
         st.code(build_narrative_prompt(scorecard))
 
 
 def _render_comparison(markets: List[MarketInput]) -> None:
     compared = compare_markets(markets)
+
     st.subheader("Ranked comparison")
-    st.dataframe(compared_markets_as_dict(compared)["ranked_markets"], use_container_width=True)
+    st.dataframe(
+        compared_markets_as_dict(compared)["ranked_markets"],
+        use_container_width=True,
+    )
 
     selected_market_name = st.selectbox(
         "Select market for detail view",
         [m.market_name for m in markets],
         key="selected_market_detail",
     )
+
     selected_market = next(m for m in markets if m.market_name == selected_market_name)
     _render_scorecard(selected_market)
 
@@ -109,7 +135,9 @@ def main() -> None:
     try:
         if mode == "Single market":
             st.subheader("Single-market input")
-            tab_sample, tab_upload, tab_live = st.tabs(["Use sample", "Upload JSON", "Fetch city live"])
+            tab_sample, tab_upload, tab_live = st.tabs(
+                ["Use sample", "Upload JSON", "Fetch city live"]
+            )
 
             with tab_sample:
                 st.caption("Use built-in sample city data")
@@ -123,6 +151,7 @@ def main() -> None:
                     type=["json"],
                     key="single_upload",
                 )
+
                 if uploaded and st.button("Score uploaded city", key="score_uploaded_city"):
                     market = _load_uploaded_market(uploaded.getvalue())
                     _render_scorecard(market)
@@ -134,6 +163,7 @@ def main() -> None:
                     placeholder="e.g., Nashville, TN",
                     key="live_city_name",
                 )
+
                 if st.button("Fetch & score city", key="fetch_score_city"):
                     if not city:
                         st.info("Enter a city to fetch live data.")
@@ -163,6 +193,7 @@ def main() -> None:
                     type=["json"],
                     key="compare_upload",
                 )
+
                 if not uploaded:
                     st.info("Upload a JSON file to continue.")
                     return
@@ -190,7 +221,10 @@ Indianapolis, IN
 San Francisco, CA
 Seattle, WA
 Denver, CO
-Washington, DC"""
+Washington, DC
+Nashville, TN
+Raleigh, NC"""
+
                 raw_cities = st.text_area(
                     "Cities to compare (one per line)",
                     value=default_cities,
@@ -200,6 +234,7 @@ Washington, DC"""
 
                 if st.button("Fetch & rank cities", key="fetch_rank_cities"):
                     cities = [c.strip() for c in raw_cities.splitlines() if c.strip()]
+
                     if not cities:
                         st.info("Enter at least one city.")
                         return
@@ -208,7 +243,9 @@ Washington, DC"""
                         markets, errors = market_inputs_from_cities(cities)
 
                     if errors:
-                        st.warning(f"Could not fetch {len(errors)} cities. Showing available results.")
+                        st.warning(
+                            f"Could not fetch {len(errors)} cities. Showing available results."
+                        )
                         with st.expander("Show city fetch errors"):
                             for city_name, err in errors.items():
                                 st.write(f"- {city_name}: {err}")
