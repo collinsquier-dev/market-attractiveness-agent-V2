@@ -14,16 +14,15 @@ from .models import (
 # This model prioritizes markets where a smaller/mid-sized consulting firm
 # can realistically win, not just the largest markets.
 DIMENSION_WEIGHTS: Dict[str, float] = {
-    "population_growth_trends": 0.06,
-    "gdp_and_macro_growth": 0.10,
-    "industry_concentration": 0.10,
-    "target_companies": 0.10,
-    "consulting_demand_signals": 0.10,
-    "mid_market_fit": 0.14,
+    "gdp_and_macro_growth": 0.12,
+    "industry_concentration": 0.12,
+    "target_companies": 0.14,
+    "consulting_demand_signals": 0.14,
+    "mid_market_fit": 0.16,
     "cost_of_living_and_operating": 0.12,
-    "competitive_intensity": 0.20,
+    "competitive_intensity": 0.18,
     "policy_environment": 0.06,
-    "qualitative_momentum_signals": 0.12,
+    "qualitative_momentum_signals": 0.06,
 }
 LABELS: Dict[str, str] = {
     "population_growth_trends": "Population growth trends",
