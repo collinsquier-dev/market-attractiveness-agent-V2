@@ -34,7 +34,6 @@ class TargetCompanyInput:
 @dataclass
 class MarketInput:
     market_name: str
-    population_growth_trends: DimensionInput = field(default_factory=DimensionInput)
     gdp_and_macro_growth: DimensionInput = field(default_factory=DimensionInput)
     industry_concentration: DimensionInput = field(default_factory=DimensionInput)
     target_companies: TargetCompanyInput = field(default_factory=TargetCompanyInput)
@@ -44,7 +43,6 @@ class MarketInput:
     competitive_intensity: DimensionInput = field(default_factory=DimensionInput)
     policy_environment: DimensionInput = field(default_factory=DimensionInput)
     qualitative_momentum_signals: DimensionInput = field(default_factory=DimensionInput)
-
 
 @dataclass
 class DimensionScore:
