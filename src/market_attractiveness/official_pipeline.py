@@ -13,12 +13,15 @@ from .models import DimensionInput, MarketInput, TargetCompanyInput
 
 
 STATE_ABBR_TO_FIPS = {
-    "AL": "01", "AK": "02", "AZ": "04", "AR": "05", "CA": "06", "CO": "08", "CT": "09", "DE": "10", "DC": "11",
-    "FL": "12", "GA": "13", "HI": "15", "ID": "16", "IL": "17", "IN": "18", "IA": "19", "KS": "20", "KY": "21",
-    "LA": "22", "ME": "23", "MD": "24", "MA": "25", "MI": "26", "MN": "27", "MS": "28", "MO": "29", "MT": "30",
-    "NE": "31", "NV": "32", "NH": "33", "NJ": "34", "NM": "35", "NY": "36", "NC": "37", "ND": "38", "OH": "39",
-    "OK": "40", "OR": "41", "PA": "42", "RI": "44", "SC": "45", "SD": "46", "TN": "47", "TX": "48", "UT": "49",
-    "VT": "50", "VA": "51", "WA": "53", "WV": "54", "WI": "55", "WY": "56",
+    "AL": "01", "AK": "02", "AZ": "04", "AR": "05", "CA": "06", "CO": "08",
+    "CT": "09", "DE": "10", "DC": "11", "FL": "12", "GA": "13", "HI": "15",
+    "ID": "16", "IL": "17", "IN": "18", "IA": "19", "KS": "20", "KY": "21",
+    "LA": "22", "ME": "23", "MD": "24", "MA": "25", "MI": "26", "MN": "27",
+    "MS": "28", "MO": "29", "MT": "30", "NE": "31", "NV": "32", "NH": "33",
+    "NJ": "34", "NM": "35", "NY": "36", "NC": "37", "ND": "38", "OH": "39",
+    "OK": "40", "OR": "41", "PA": "42", "RI": "44", "SC": "45", "SD": "46",
+    "TN": "47", "TX": "48", "UT": "49", "VT": "50", "VA": "51", "WA": "53",
+    "WV": "54", "WI": "55", "WY": "56",
 }
 
 POLICY_STATE_SCORE = {
@@ -149,6 +152,7 @@ class ACSFetcher:
         lf = float(d.get("B23025_003E", 0) or 0)
         unemp = float(d.get("B23025_005E", 0) or 0)
         edu_total = float(d.get("B15003_001E", 0) or 0)
+
         edu_ba_plus = sum(
             float(d.get(k, 0) or 0)
             for k in ["B15003_022E", "B15003_023E", "B15003_024E", "B15003_025E"]
@@ -277,7 +281,7 @@ class MetricNormalizer:
                 normalized_score=self._clamp(
                     22
                     + city.importance * 24
-                    + (income / 4200.0)
+                    + income / 4200.0
                     + max(0.0, 7.5 - unemp) * 2.7
                     + edu * 0.45
                 ),
@@ -288,7 +292,7 @@ class MetricNormalizer:
                 confidence_score=0.65 if has_bls or has_acs else 0.40,
                 explanation="Consulting demand proxy tuned for TGG: city prominence, income, labor tightness, and education/talent base.",
             ),
-                        "mid_market_fit": DimensionMetric(
+            "mid_market_fit": DimensionMetric(
                 raw_value=city.importance,
                 normalized_score=self._clamp(
                     85
@@ -347,11 +351,22 @@ class MetricNormalizer:
                 confidence_score=0.55 if has_bls or has_acs else 0.35,
                 explanation="Momentum proxy from resolver importance and labor conditions.",
             ),
+            "target_company_estimate": DimensionMetric(
+                raw_value=income,
+                normalized_score=0.0,
+                source="ACS + resolver",
+                source_date=d,
+                geographic_level_used=level,
+                direct_vs_proxy="proxy",
+                confidence_score=0.45,
+                explanation="Supporting metric used to estimate $500M+ target company count.",
+            ),
         }
+
 
 class MarketInputBuilder:
     def build(self, city: ResolvedCity, metrics: Dict[str, DimensionMetric]) -> MarketInput:
-        income = metrics["cost_of_living_and_operating"].raw_value
+        income = metrics["target_company_estimate"].raw_value
         edu = metrics["industry_concentration"].raw_value
 
         count_500m_plus = int(
