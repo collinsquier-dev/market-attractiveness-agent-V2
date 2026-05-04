@@ -380,19 +380,20 @@ class MarketInputBuilder:
                 ),
             )
 
-        return MarketInput(
-            market_name=city.query,
-            population_growth_trends=dim("population_growth_trends"),
-            gdp_and_macro_growth=dim("gdp_and_macro_growth"),
-            industry_concentration=dim("industry_concentration"),
-           target_companies=TargetCompanyInput(
-                count_500m_plus=count_500m_plus,
-                confidence=0.45,
-                note="Proxy estimate for $500M+ revenue companies using income and market size.",
-            ),
-            consulting_demand_signals=dim("consulting_demand_signals"),
-            cost_of_living_and_operating=dim("cost_of_living_and_operating"),
-            competitive_intensity=dim("competitive_intensity"),
-            policy_environment=dim("policy_environment"),
-            qualitative_momentum_signals=dim("qualitative_momentum_signals"),
-        )
+   return MarketInput(
+    market_name=city.query,
+    population_growth_trends=dim("population_growth_trends"),
+    gdp_and_macro_growth=dim("gdp_and_macro_growth"),
+    industry_concentration=dim("industry_concentration"),
+    target_companies=TargetCompanyInput(
+        count_500m_plus=count_500m_plus,
+        confidence=0.45,
+        note="Proxy estimate for $500M+ revenue companies using income and market size.",
+    ),
+    consulting_demand_signals=dim("consulting_demand_signals"),
+    mid_market_fit=dim("mid_market_fit"),
+    cost_of_living_and_operating=dim("cost_of_living_and_operating"),
+    competitive_intensity=dim("competitive_intensity"),
+    policy_environment=dim("policy_environment"),
+    qualitative_momentum_signals=dim("qualitative_momentum_signals"),
+)
