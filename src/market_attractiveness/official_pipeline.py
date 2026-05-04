@@ -298,6 +298,21 @@ class MetricNormalizer:
                 confidence_score=0.65 if has_bls or has_acs else 0.40,
                 explanation="Consulting demand proxy tuned for TGG: city prominence, income, labor tightness, and education/talent base.",
             ),
+                        "mid_market_fit": DimensionMetric(
+                raw_value=city.importance,
+                normalized_score=self._clamp(
+                    85
+                    - abs(city.importance - 0.55) * 85
+                    + max(0.0, 8.0 - unemp) * 1.5
+                    + min(15.0, edu * 0.25)
+                ),
+                source="Resolver + ACS + BLS",
+                source_date=d,
+                geographic_level_used=level,
+                direct_vs_proxy="proxy",
+                confidence_score=0.60 if has_acs or has_bls else 0.35,
+                explanation="Mid-market fit proxy: rewards markets large enough to support consulting demand but not so large or saturated that smaller-firm winnability declines.",
+            ),
             "cost_of_living_and_operating": DimensionMetric(
                 raw_value=rent,
                 normalized_score=self._clamp(92 - rent / 32.0 + income / 16000.0),
