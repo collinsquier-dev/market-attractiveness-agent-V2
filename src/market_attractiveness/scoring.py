@@ -176,3 +176,97 @@ def recommend_market(scorecard: MarketScorecard) -> dict:
         "decision": "DEPRIORITIZE",
         "reason": "Weak demand, poor winnability, or limited structural attractiveness.",
     }
+DEMAND_KEYS = [
+    "gdp_and_macro_growth",
+    "industry_concentration",
+    "target_companies",
+    "consulting_demand_signals",
+    "qualitative_momentum_signals",
+]
+
+WINNABILITY_KEYS = [
+    "mid_market_fit",
+    "cost_of_living_and_operating",
+    "competitive_intensity",
+    "policy_environment",
+]
+
+
+def _weighted_subscore(scorecard: MarketScorecard, labels_to_include: list[str]) -> float | None:
+    weighted_sum = 0.0
+    used_weight = 0.0
+
+    label_lookup = {v: k for k, v in LABELS.items()}
+
+    for dim in scorecard.dimension_scores:
+        key = label_lookup.get(dim.name)
+        if key not in labels_to_include:
+            continue
+        if dim.score is None or dim.missing:
+            continue
+
+        weight = DIMENSION_WEIGHTS.get(key, 0.0)
+        weighted_sum += dim.score * weight
+        used_weight += weight
+
+    if used_weight == 0:
+        return None
+
+    return round(weighted_sum / used_weight, 2)
+
+
+def demand_score(scorecard: MarketScorecard) -> float | None:
+    return _weighted_subscore(scorecard, DEMAND_KEYS)
+
+
+def winnability_score(scorecard: MarketScorecard) -> float | None:
+    return _weighted_subscore(scorecard, WINNABILITY_KEYS)
+
+
+def bain_style_final_score(scorecard: MarketScorecard) -> float | None:
+    demand = demand_score(scorecard)
+    win = winnability_score(scorecard)
+
+    if demand is None and win is None:
+        return None
+    if demand is None:
+        return win
+    if win is None:
+        return demand
+
+    return round((0.40 * demand) + (0.60 * win), 2)
+
+
+def recommend_market_bain(scorecard: MarketScorecard) -> dict:
+    demand = demand_score(scorecard)
+    win = winnability_score(scorecard)
+    final = bain_style_final_score(scorecard)
+
+    if final is None:
+        return {
+            "decision": "INSUFFICIENT DATA",
+            "reason": "The model does not have enough usable data to score this market.",
+        }
+
+    if final >= 75 and scorecard.overall_confidence >= 0.55:
+        return {
+            "decision": "PRIORITIZE MARKET",
+            "reason": "Strong balance of demand and winnability for a mid-sized consulting firm.",
+        }
+
+    if final >= 65:
+        return {
+            "decision": "TEST / BUILD RELATIONSHIPS",
+            "reason": "Market is promising, but should be validated through local relationships and pipeline testing.",
+        }
+
+    if final >= 55:
+        return {
+            "decision": "MONITOR",
+            "reason": "Market has some attractive signals but is not yet a clear priority.",
+        }
+
+    return {
+        "decision": "DEPRIORITIZE",
+        "reason": "Market does not currently show enough demand or winnability.",
+    }
