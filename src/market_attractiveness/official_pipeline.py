@@ -252,16 +252,6 @@ class MetricNormalizer:
         pop = acs.get("population", 1_000_000.0)
 
         return {
-            "population_growth_trends": DimensionMetric(
-                raw_value=pop,
-                normalized_score=self._clamp(35 + city.importance * 30),
-                source="ACS/Resolver",
-                source_date=d,
-                geographic_level_used=level,
-                direct_vs_proxy="proxy",
-                confidence_score=0.55 if has_acs else 0.35,
-                explanation="Population proxy from ACS state population and city prominence.",
-            ),
             "gdp_and_macro_growth": DimensionMetric(
                 raw_value=unemp,
                 normalized_score=self._clamp(84 - unemp * 4.4),
@@ -359,14 +349,20 @@ class MetricNormalizer:
             ),
         }
 
-
 class MarketInputBuilder:
     def build(self, city: ResolvedCity, metrics: Dict[str, DimensionMetric]) -> MarketInput:
-        pop = metrics["population_growth_trends"].raw_value
-        income = metrics["compensation_benchmarks"].raw_value
+        income = metrics["cost_of_living_and_operating"].raw_value
         edu = metrics["industry_concentration"].raw_value
 
-        count_500m_plus = int(max(5, min(120, ((income / 1800) / 4) + city.importance * 8)))
+        count_500m_plus = int(
+            max(
+                5,
+                min(
+                    120,
+                    ((income / 1800) / 4) + (edu / 3) + city.importance * 6,
+                ),
+            )
+        )
 
         def dim(key: str) -> DimensionInput:
             m = metrics[key]
@@ -382,13 +378,12 @@ class MarketInputBuilder:
 
         return MarketInput(
             market_name=city.query,
-            population_growth_trends=dim("population_growth_trends"),
             gdp_and_macro_growth=dim("gdp_and_macro_growth"),
             industry_concentration=dim("industry_concentration"),
             target_companies=TargetCompanyInput(
                 count_500m_plus=count_500m_plus,
                 confidence=0.45,
-                note="Proxy estimate for $500M+ revenue companies.",
+                note="Proxy estimate for $500M+ revenue companies using income, education, and city prominence.",
             ),
             consulting_demand_signals=dim("consulting_demand_signals"),
             mid_market_fit=dim("mid_market_fit"),
