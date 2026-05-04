@@ -24,8 +24,13 @@ from market_attractiveness.live_data import (
 )
 from market_attractiveness.models import MarketInput
 from market_attractiveness.narrative import build_narrative_prompt, render_narrative_summary
-from market_attractiveness.scoring import score_market
-
+from market_attractiveness.scoring import (
+    score_market,
+    demand_score,
+    winnability_score,
+    bain_style_final_score,
+    recommend_market_bain,
+)
 
 SAMPLE_SINGLE = "examples/sample_market_input.json"
 SAMPLE_COMPARE = "examples/sample_markets_input.json"
