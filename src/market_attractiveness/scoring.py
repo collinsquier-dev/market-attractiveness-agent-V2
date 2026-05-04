@@ -25,7 +25,6 @@ DIMENSION_WEIGHTS: Dict[str, float] = {
     "qualitative_momentum_signals": 0.06,
 }
 LABELS: Dict[str, str] = {
-    "population_growth_trends": "Population growth trends",
     "gdp_and_macro_growth": "GDP and macro growth indicators",
     "industry_concentration": "Industry concentration",
     "target_companies": "Target companies ($500M+ revenue)",
