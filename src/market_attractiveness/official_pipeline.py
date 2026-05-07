@@ -10,6 +10,7 @@ from datetime import date
 from typing import Any, Dict, Optional
 
 from .models import DimensionInput, MarketInput, TargetCompanyInput
+from .news_signals import get_news_momentum_score
 
 
 STATE_ABBR_TO_FIPS = {
@@ -349,7 +350,7 @@ class MetricNormalizer:
                 geographic_level_used=level,
                 direct_vs_proxy="proxy",
                 confidence_score=0.55 if has_bls or has_acs else 0.35,
-                explanation="Momentum proxy from resolver importance and labor conditions.",
+                explanation="Fallback momentum proxy from resolver importance and labor conditions.",
             ),
             "target_company_estimate": DimensionMetric(
                 raw_value=income,
@@ -368,6 +369,8 @@ class MarketInputBuilder:
     def build(self, city: ResolvedCity, metrics: Dict[str, DimensionMetric]) -> MarketInput:
         income = metrics["target_company_estimate"].raw_value
         edu = metrics["industry_concentration"].raw_value
+
+        news_momentum = get_news_momentum_score(city.query)
 
         count_500m_plus = int(
             max(
@@ -405,5 +408,9 @@ class MarketInputBuilder:
             cost_of_living_and_operating=dim("cost_of_living_and_operating"),
             competitive_intensity=dim("competitive_intensity"),
             policy_environment=dim("policy_environment"),
-            qualitative_momentum_signals=dim("qualitative_momentum_signals"),
+            qualitative_momentum_signals=DimensionInput(
+                value=news_momentum.score,
+                confidence=news_momentum.confidence,
+                note=news_momentum.note,
+            ),
         )
